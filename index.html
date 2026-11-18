@@ -287,8 +287,8 @@ tr.tot td{font-weight:600;border-top:2px solid var(--axis)}
 <script>
 // ===== Configuração =====
 const EMPCFG = window.EMP === "sol"
-  ? { nome: "Sol Nascente", app: "vendas_sol", pre: "sol_", semOrc: true, frete: true, comparativo: true, vend: "vendedor", vends: "vendedores", Vends: "Vendedores" }
-  : { nome: "FiberFix", app: "vendas", pre: "", semOrc: false, vend: "vendedora", vends: "vendedoras", Vends: "Vendedoras" };
+  ? { nome: "Sol Nascente", app: "vendas_sol", pre: "sol_", semOrc: true, frete: true, comparativo: true, vend: "vendedor", Vend: "Vendedor", vends: "vendedores", Vends: "Vendedores" }
+  : { nome: "FiberFix", app: "vendas", pre: "", semOrc: false, vend: "vendedora", Vend: "Vendedora", vends: "vendedoras", Vends: "Vendedoras" };
 const DATA_BASE = "https://script.google.com/macros/s/AKfycbz3CLGSgvEKRoFI5FyTBDnnF3l-4v5pFx5rO_UyLZn1gr8AeSO0e78ugg60umRLcaNO/exec?app=" + EMPCFG.app;
 let PW_ATUAL = load("vendas_pw");
 const DATA_URL_DEFAULT = "";          // preencher após publicar o Apps Script; o usuário também pode trocar em ⚙︎
@@ -657,8 +657,9 @@ function abrirPed(num) {
   $("#det-title").textContent = (p.cliente_cod ? p.cliente_cod + " · " : "") + p.cliente;
   $("#det-sub").innerHTML = `Pedido #${esc(p.num)} · <span class="pill" style="background:${PA_COR[et]};color:#fff">${esc(nomeEt[et])}</span> · digitado há ${haQuanto(p.digitado)}`;
   const campo = (k, v) => v == null || v === "" ? "" : `<div class="kv"><span>${k}</span><b>${v}</b></div>`;
-  $("#det-kv").innerHTML = campo("Vendedora", esc(p.rca)) + campo("Valor", brl2(p.valor)) + campo("Plano de pagamento", esc(p.cond_pagto)) + campo("Orçamento", p.orcamento ? esc(p.orcamento) : "direto")
-    + campo("Carga", p.carga ? esc(p.carga) : null) + campo("Motivo", p.motivo ? `<span class="luc-bad">${esc(p.motivo)}</span>` : null);
+  $("#det-kv").innerHTML = campo(EMPCFG.Vend, esc(p.rca)) + campo("Valor", brl2(p.valor)) + campo("Plano de pagamento", esc(p.cond_pagto)) + campo("Orçamento", p.orcamento ? esc(p.orcamento) : "direto")
+    + campo("Carga", p.carga ? esc(p.carga) : null) + campo("Motivo", p.motivo ? `<span class="luc-bad">${esc(p.motivo)}</span>` : null) + finRow(p.cliente_cod, p.cliente);
+  FIN_BACK = () => abrirPed(num);
   const auto = !p.liberado && p.pos !== "B" && p.pos !== "P";
   const passos = [["Digitado", p.digitado], [auto ? "Liberado direto (sem bloqueio)" : "Liberado na 336", p.liberado], ["Mapa de separação", p.mapa], ["Início separação", p.sep_ini], ["Fim separação", p.sep_fim], ["Conferência", p.conf_fim]];
   let ant = null;
@@ -879,19 +880,28 @@ function abrirNota(nf, data, per) {
   $("#det-sub").querySelector("#det-back").addEventListener("click", e => { e.preventDefault(); per ? abrirNotasPeriodo() : abrirNotas(data); });
   const campo = (k, v) => v == null || v === "" ? "" : `<div class="kv"><span>${k}</span><b>${v}</b></div>`;
   $("#det-extra").innerHTML = "";
-  $("#det-kv").innerHTML = campo("Vendedora", esc(n.rca)) + campo("Pedido", n.pedido ? esc(n.pedido) : "—") + campo("Plano de pagamento", n.cond_pagto ? esc(n.cond_pagto) : null) + campo("Orçamento", n.orcamento ? esc(n.orcamento) : "direto") + campo("Valor da nota", brl2(n.valor));
+  $("#det-kv").innerHTML = campo(EMPCFG.Vend, esc(n.rca)) + campo("Pedido", n.pedido ? esc(n.pedido) : "—") + campo("Plano de pagamento", n.cond_pagto ? esc(n.cond_pagto) : null) + campo("Orçamento", n.orcamento ? esc(n.orcamento) : "direto") + campo("Valor da nota", brl2(n.valor)) + finRow(n.cliente_cod, n.cliente);
+  FIN_BACK = () => abrirNota(nf, data, per);
   $("#det-itens").previousElementSibling.textContent = "Itens";
   $("#det-itens").innerHTML = itens.length ? itens.map(linhaItem).join("") + totItens(itens, "Total dos itens")
     : `<tr><td class="empty">Itens não disponíveis.</td></tr>`;
   $("#det .sheet-b").scrollTop = 0;
 }
-function abrirFin(cod, numOrca) {
+let FIN_BACK = null;
+// linha "Em aberto (usado)" que abre o financeiro do cliente; vazio quando a leitura não trouxe o cliente
+function finRow(cod, nome) {
+  const c = (DATA.clientes || {})[String(cod)]; if (!c || c.usado == null) return "";
+  const campo = (k, v) => v == null || v === "" ? "" : `<div class="kv"><span>${k}</span><b>${v}</b></div>`;
+  return campo("Limite de crédito", c.limite != null ? brl(c.limite) : null)
+    + `<div class="kv fin" data-cod="${esc(cod)}" data-nome="${esc(nome || "")}" role="button" style="cursor:pointer"><span>Em aberto (usado) <span class="chev">›</span></span><b>${brl(c.usado)}${c.limite ? ` · ${fmtNum(Math.round(c.usado / c.limite * 100))}%` : ""}${c.vencido ? ` · <span class="luc-bad">vencido ${brl(c.vencido)}</span>` : ""}</b></div>`;
+}
+function abrirFin(cod, numOrca, nome) {
   const c = (DATA.clientes || {})[String(cod)]; if (!c) return;
   const r = (DATA.orcamentos.lista || []).find(x => String(x.num) === String(numOrca));
   const ref = refData(); const dias = v => Math.round((ref - new Date(v + "T00:00:00")) / 864e5);
-  $("#det-title").textContent = (cod ? cod + " · " : "") + (r ? r.cliente : "");
+  $("#det-title").textContent = (cod ? cod + " · " : "") + (r ? r.cliente : (nome || ""));
   $("#det-sub").innerHTML = `<a href="#" id="det-back" style="color:var(--s1);text-decoration:none;font-weight:600">‹ Voltar</a> &nbsp; Financeiro do cliente`;
-  $("#det-sub").querySelector("#det-back").addEventListener("click", e => { e.preventDefault(); abrirOrc(numOrca); });
+  $("#det-sub").querySelector("#det-back").addEventListener("click", e => { e.preventDefault(); numOrca ? abrirOrc(numOrca) : (FIN_BACK && FIN_BACK()); });
   const campo = (k, v) => v == null || v === "" ? "" : `<div class="kv"><span>${k}</span><b>${v}</b></div>`;
   const fz = c.fin_12m || {};
   $("#det-kv").innerHTML = campo("Limite de crédito", brl(c.limite)) + campo("Em aberto", `${brl(c.usado)}${c.limite ? ` · ${fmtNum(Math.round(c.usado / c.limite * 100))}% do limite` : ""}`)
@@ -1108,7 +1118,7 @@ $("#det-itens").addEventListener("click", e => { const tr = e.target.closest("tr
 $("#c-seg").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; CORDEM = b.dataset.c; store("vendas_cordem", CORDEM); if (CONV_ARGS) renderRankingConv(...CONV_ARGS); });
 $("#card-hoje").addEventListener("click", () => abrirNotas(hojeStr(refData())));
 $("#card-ontem").addEventListener("click", () => { if (ONTEM) abrirNotas(ONTEM); });
-$("#det-kv").addEventListener("click", e => { const el = e.target.closest(".kv.fin"); if (el) abrirFin(el.dataset.cod, el.dataset.num); });
+$("#det-kv").addEventListener("click", e => { const el = e.target.closest(".kv.fin"); if (el) abrirFin(el.dataset.cod, el.dataset.num, el.dataset.nome); });
 $("#det-itens").addEventListener("click", e => { const tr = e.target.closest("tr.orc[data-nf]"); if (tr) abrirNota(tr.dataset.nf, tr.dataset.data, tr.dataset.per); });
 $("#o-fat-card").addEventListener("click", abrirNotasPeriodo);
 $("#det").addEventListener("click", e => { if (e.target === e.currentTarget) e.currentTarget.close(); });
