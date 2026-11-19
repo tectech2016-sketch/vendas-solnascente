@@ -721,10 +721,12 @@ function renderRep() {
   ["#rp-seg", "#rp-q"].forEach(q => $(q).style.display = temDados ? (q === "#rp-seg" ? "flex" : "") : "none");
   if (!temDados) {
     $("#rp-list").innerHTML = ""; $("#rp-nota").textContent = "";
+    // o teclado do celular redimensiona a tela e redesenha o app: se o campo de senha já está na tela, só atualiza botão e aviso, sem recriar o campo
+    if ($("#rp-pw")) { const b = $("#rp-entrar"), m = $("#rp-msg"); b.disabled = REP_BUSY; b.textContent = REP_BUSY ? "Carregando…" : "Entrar"; m.textContent = REP_MSG; m.hidden = !REP_MSG; return; }
     $("#rp-top").innerHTML = `<div class="label" style="margin:0">Reposição e estoque ideal</div><p class="vsub" style="margin:8px 0 12px;line-height:1.5">Esta aba usa a mesma senha do painel de Reposição do site. Ela fica guardada só neste aparelho.</p>
       <input type="password" id="rp-pw" placeholder="Senha do painel de Reposição" autocomplete="current-password" style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--bg);color:var(--ink);font:inherit;font-size:16px">
       <button class="btn" id="rp-entrar" style="width:100%;margin-top:10px;padding:12px;background:var(--s1);color:#fff;border-color:var(--s1);font-weight:600;justify-content:center;text-align:center"${REP_BUSY ? " disabled" : ""}>${REP_BUSY ? "Carregando…" : "Entrar"}</button>
-      ${REP_MSG ? `<p class="luc-bad" style="margin:10px 0 0;font-size:13px">${esc(REP_MSG)}</p>` : ""}`;
+      <p class="luc-bad" id="rp-msg" style="margin:10px 0 0;font-size:13px"${REP_MSG ? "" : " hidden"}>${esc(REP_MSG)}</p>`;
     return;
   }
   const rs = R.resumo || {}, n0 = x => Math.round(x || 0).toLocaleString("pt-BR"), dd = x => x == null ? "—" : String(x).replace(".", ",");
