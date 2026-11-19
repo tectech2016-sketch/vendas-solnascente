@@ -776,12 +776,17 @@ function abrirPedidoRep(g) {
   REP_PED = { g, nome: titulo(F.nome || (sug[0] || {}).fornecedor || ""), itens: sug.map(p => ({ cod: p.cod, cx: p.pedir_cx })), prazo: F.prazo || "", quem: load("rep_quem") || "", obs: "", msg: "", erro: false, busy: false, arq: null, feito: null };
   DET_BACK = null; desenharPedidoRep(); $("#det").showModal();
 }
+// preço de compra por unidade: vale o digitado no pedido; em branco ou inválido, o da última entrada
+function repNum(v) { v = String(v == null ? "" : v).trim().replace(/[^\d.,]/g, ""); if (v.includes(",")) v = v.replace(/\./g, "").replace(",", "."); const n = parseFloat(v); return n > 0 && n < 1e6 ? Math.round(n * 100) / 100 : 0; }
+function repPreco(it, p) { return (it.preco != null && repNum(it.preco)) || (p && p.preco) || 0; }
+function repPrecoTxt(x) { return x ? (+x).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ""; }
 function desenharPedidoRep() {
   const P = REP_PED; if (!P) return; const n0 = x => Math.round(x || 0).toLocaleString("pt-BR");
-  const linhas = P.itens.map(it => ({ it, p: repProd(it.cod) })).filter(x => x.p), tot = linhas.reduce((a, x) => a + (Math.floor(+x.it.cx) || 0) * x.p.un_cx * (x.p.preco || 0), 0);
+  const linhas = P.itens.map(it => ({ it, p: repProd(it.cod) })).filter(x => x.p), tot = linhas.reduce((a, x) => a + (Math.floor(+x.it.cx) || 0) * x.p.un_cx * repPreco(x.it, x.p), 0);
   const inp = "width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit;font-size:16px;margin-top:4px";
+  const cel = "width:82px;padding:9px 8px;text-align:right;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit;font-size:16px";
   $("#det-title").textContent = "Pedido de compra · " + P.nome;
-  $("#det-sub").innerHTML = P.feito ? `Pedido ${esc(P.feito.numero)} gerado` : `Total <b style="color:var(--ink)" id="rpp-total">${brl2(tot)}</b> · preço da última entrada`;
+  $("#det-sub").innerHTML = P.feito ? `Pedido ${esc(P.feito.numero)} gerado` : `Total <b style="color:var(--ink)" id="rpp-total">${brl2(tot)}</b> · preço pode ser alterado em cada item`;
   $("#det-kv").innerHTML = "";
   if (P.feito) {
     $("#det-extra").innerHTML = `<div class="card" style="margin-top:12px;text-align:center;padding:18px 16px"><div class="hero" style="font-size:22px;color:var(--good)">✓ PDF pronto</div><p class="vsub" style="margin:8px 0 14px;line-height:1.5">${P.feito.itens} ite${P.feito.itens > 1 ? "ns" : "m"} · ${brl2(P.feito.total)}${P.feito.salvo ? "<br>Cópia salva no Drive, pasta pedidos-compra." : ""}</p>
@@ -794,16 +799,17 @@ function desenharPedidoRep() {
   $("#det-extra").innerHTML = `<div style="margin-top:6px"><label class="vsub">Prazo de pagamento<input id="rpp-prazo" maxlength="80" placeholder="ex.: 28/35/42 dias" value="${esc(P.prazo)}" style="${inp}"></label>
     <label class="vsub" style="display:block;margin-top:10px">Solicitante<input id="rpp-quem" maxlength="60" placeholder="Seu nome" value="${esc(P.quem)}" style="${inp}"></label>
     <label class="vsub" style="display:block;margin-top:10px">Observações (opcional)<input id="rpp-obs" maxlength="400" value="${esc(P.obs)}" style="${inp}"></label></div>`;
-  $("#det-itens").previousElementSibling.textContent = "Itens · quantidade em caixas";
-  $("#det-itens").innerHTML = linhas.map(({ it, p }, i) => `<tr><td><div class="cli">${esc(p.produto)}</div><div class="mt">cód. ${p.cod} · ${n0(p.un_cx)} un/cx · vende ${n0(p.venda_90d / 3)}/mês · tem ${n0(p.disponivel)}</div><div class="mt" id="rpp-l${i}">${n0((Math.floor(+it.cx) || 0) * p.un_cx)} un · ${brl2((Math.floor(+it.cx) || 0) * p.un_cx * (p.preco || 0))}</div></td>
-      <td class="v" style="white-space:nowrap"><input class="rpp-cx" data-i="${i}" type="number" inputmode="numeric" min="0" step="1" value="${it.cx}" style="width:74px;padding:9px 8px;text-align:right;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit;font-size:16px"> cx</td></tr>`).join("")
+  $("#det-itens").previousElementSibling.textContent = "Itens · caixas e preço de compra por unidade";
+  $("#det-itens").innerHTML = linhas.map(({ it, p }, i) => `<tr><td><div class="cli">${esc(p.produto)}</div><div class="mt">cód. ${p.cod} · ${n0(p.un_cx)} un/cx · vende ${n0(p.venda_90d / 3)}/mês · tem ${n0(p.disponivel)}</div><div class="mt" id="rpp-l${i}">${n0((Math.floor(+it.cx) || 0) * p.un_cx)} un · ${brl2((Math.floor(+it.cx) || 0) * p.un_cx * repPreco(it, p))}</div></td>
+      <td class="v" style="white-space:nowrap;vertical-align:top"><div><input class="rpp-cx" data-i="${i}" type="number" inputmode="numeric" min="0" step="1" value="${it.cx}" style="${cel}"> cx</div>
+        <div style="margin-top:6px"><span class="mt">R$</span> <input class="rpp-pr" data-i="${i}" type="text" inputmode="decimal" maxlength="12" aria-label="Preço de compra por unidade" placeholder="${repPrecoTxt(p.preco)}" value="${it.preco != null ? esc(it.preco) : repPrecoTxt(p.preco)}" style="${cel}${it.preco != null && repNum(it.preco) && repNum(it.preco) != p.preco ? ";border-color:var(--s1);font-weight:600" : ""}"> un</div></td></tr>`).join("")
     + `<tr><td colspan="2" style="border:0;padding-top:12px">${outros.length ? `<select id="rpp-add" style="${inp};margin-top:0"><option value="">Adicionar outro produto deste fornecedor…</option>${outros.map(p => `<option value="${p.cod}">${esc(p.produto)} (tem ${n0(p.disponivel)})</option>`).join("")}</select>` : `<p class="vsub" style="margin:0;line-height:1.5">Este fornecedor não tem outros produtos para incluir: no Winthor, os itens acima são os únicos ligados a ele.</p>`}
       <button class="btn" id="rpp-gerar" style="width:100%;margin-top:12px;padding:13px;background:var(--s1);color:#fff;border-color:var(--s1);font-weight:600;font-size:15px;justify-content:center;text-align:center"${P.busy ? " disabled" : ""}>${P.busy ? "Gerando o PDF…" : "Gerar PDF"}</button>
       ${P.msg ? `<p class="${P.erro ? "luc-bad" : "vsub"}" style="margin:10px 0 0;font-size:13px">${esc(P.msg)}</p>` : ""}</td></tr>`;
 }
 function repLerForm() { const P = REP_PED; if (!P || P.feito) return; const v = id => { const e = document.getElementById(id); return e ? e.value : ""; }; P.prazo = v("rpp-prazo"); P.quem = v("rpp-quem"); P.obs = v("rpp-obs"); }
 async function repGerarPdf() {
-  const P = REP_PED; repLerForm(); const itens = P.itens.map(it => ({ cod: it.cod, cx: Math.floor(+it.cx) || 0 })).filter(it => it.cx >= 1);
+  const P = REP_PED; repLerForm(); const itens = P.itens.map(it => { const o = { cod: it.cod, cx: Math.floor(+it.cx) || 0 }, pr = it.preco != null ? repNum(it.preco) : 0; if (pr) o.preco = pr; return o; }).filter(it => it.cx >= 1);
   if (!itens.length) { P.msg = "Informe a quantidade de caixas de pelo menos um item."; P.erro = true; return desenharPedidoRep(); }
   store("rep_quem", P.quem); P.busy = true; P.msg = ""; desenharPedidoRep();
   try { const r = await repPost({ acao: "pedido", senha: REP_PW, pedido: { codfornec: P.g, prazo: P.prazo, obs: P.obs, solicitante: P.quem, itens } });
@@ -1294,9 +1300,10 @@ $("#rp-seg").addEventListener("click", e => { const b = e.target.closest("button
 $("#rp-top").addEventListener("click", e => { if (e.target.closest("#rp-entrar")) { const pw = ($("#rp-pw") || {}).value || ""; if (pw) repCarregar(pw); } });
 $("#rp-top").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.id === "rp-pw" && e.target.value) repCarregar(e.target.value); });
 $("#rp-list").addEventListener("click", e => { const b = e.target.closest(".rp-ped"); if (b) abrirPedidoRep(b.dataset.g); });
-$("#det").addEventListener("input", e => { const P = REP_PED; if (!P || !e.target.classList.contains("rpp-cx")) return; const i = +e.target.dataset.i, it = P.itens[i], p = repProd(it.cod); it.cx = e.target.value;
-  const cx = Math.floor(+it.cx) || 0, n0 = x => Math.round(x || 0).toLocaleString("pt-BR"); $("#rpp-l" + i).textContent = `${n0(cx * p.un_cx)} un · ${brl2(cx * p.un_cx * (p.preco || 0))}`;
-  $("#rpp-total").textContent = brl2(P.itens.reduce((a, x) => { const q = repProd(x.cod); return a + (Math.floor(+x.cx) || 0) * q.un_cx * (q.preco || 0); }, 0)); });
+$("#det").addEventListener("input", e => { const P = REP_PED, c = e.target.classList; if (!P || !(c.contains("rpp-cx") || c.contains("rpp-pr"))) return; const i = +e.target.dataset.i, it = P.itens[i], p = repProd(it.cod);
+  if (c.contains("rpp-cx")) it.cx = e.target.value; else { it.preco = e.target.value; const alt = repNum(it.preco) && repNum(it.preco) != p.preco; e.target.style.borderColor = alt ? "var(--s1)" : ""; e.target.style.fontWeight = alt ? "600" : ""; }
+  const cx = Math.floor(+it.cx) || 0, n0 = x => Math.round(x || 0).toLocaleString("pt-BR"); $("#rpp-l" + i).textContent = `${n0(cx * p.un_cx)} un · ${brl2(cx * p.un_cx * repPreco(it, p))}`;
+  $("#rpp-total").textContent = brl2(P.itens.reduce((a, x) => a + (Math.floor(+x.cx) || 0) * repProd(x.cod).un_cx * repPreco(x, repProd(x.cod)), 0)); });
 $("#det").addEventListener("change", e => { const P = REP_PED; if (!P || e.target.id !== "rpp-add" || !e.target.value) return; repLerForm(); P.itens.push({ cod: +e.target.value, cx: 1 }); P.msg = ""; desenharPedidoRep(); });
 $("#det").addEventListener("click", e => { if (!REP_PED) return; if (e.target.closest("#rpp-gerar")) repGerarPdf(); else if (e.target.closest("#rpp-zap")) repEnviarZap(); });
 $("#det").addEventListener("close", () => { REP_PED = null; $("#det-itens").previousElementSibling.textContent = "Itens"; });
