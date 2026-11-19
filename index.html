@@ -846,14 +846,16 @@ function pagaEm(venc) { const d = new Date(venc + "T00:00:00"), w = d.getDay(); 
 let CX_SEM = [];
 function renderCaixa() {
   const cx = (DATA || {}).caixa, btn = document.querySelector('nav button[data-tab="cx"]');
-  const tem = EMPCFG.caixa && cx && ((cx.receber || []).length || (cx.pagar || []).length);
+  const tem = EMPCFG.caixa && cx && ((cx.tit_receber || []).length || (cx.tit_pagar || []).length);
   btn.style.display = tem ? "" : "none"; if (!tem) return;
   const ref = refData(), hoje = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate()), seg0 = maisDias(hoje, -((hoje.getDay() + 6) % 7));
   const dm = d => String(d.getDate()).padStart(2, "0") + "/" + String(d.getMonth() + 1).padStart(2, "0"), iso = d => hojeStr(d);
   const sem = Array.from({ length: 8 }, (_, i) => ({ i, ini: i ? maisDias(seg0, 7 * i) : hoje, fim: maisDias(seg0, 7 * i + 6), parcial: !i && hoje > seg0, r: 0, rq: 0, p: 0, pq: 0, dias: {} }));
-  const lancar = (d, v, q, tipo) => { const n = Math.floor((d - seg0) / 6048e5); if (d < hoje || n < 0 || n > 7) return; const s = sem[n], k = iso(d), o = s.dias[k] || (s.dias[k] = { d, r: 0, rq: 0, p: 0, pq: 0 });
-    if (tipo === "r") { s.r += v; s.rq += q; o.r += v; o.rq += q; } else { s.p += v; s.pq += q; o.p += v; o.pq += q; } };
-  (cx.receber || []).forEach(x => lancar(entraEm(x.venc), x.valor, x.qtd, "r")); (cx.pagar || []).forEach(x => lancar(pagaEm(x.venc), x.valor, x.qtd, "p"));
+  // vencido = o que já deveria ter entrado/saído antes de hoje e segue em aberto (títulos recentes + o total mais antigo que vem somado)
+  const vr = { qtd: (cx.vencido_receber_antes || {}).qtd || 0, valor: (cx.vencido_receber_antes || {}).valor || 0 }, vp = { qtd: (cx.vencido_pagar_antes || {}).qtd || 0, valor: (cx.vencido_pagar_antes || {}).valor || 0 };
+  const lancar = (d, t, tipo) => { if (d < hoje) { const v = tipo === "r" ? vr : vp; v.qtd++; v.valor += t.valor; return; } const n = Math.floor(Math.round((d - seg0) / 864e5) / 7); if (n < 0 || n > 7) return; const s = sem[n], k = iso(d), o = s.dias[k] || (s.dias[k] = { d, k, r: 0, rq: 0, p: 0, pq: 0, tr: [], tp: [] });
+    if (tipo === "r") { s.r += t.valor; s.rq++; o.r += t.valor; o.rq++; o.tr.push(t); } else { s.p += t.valor; s.pq++; o.p += t.valor; o.pq++; o.tp.push(t); } };
+  (cx.tit_receber || []).forEach(t => lancar(entraEm(t.venc), t, "r")); (cx.tit_pagar || []).forEach(t => lancar(pagaEm(t.venc), t, "p"));
   CX_SEM = sem; let ac = 0; sem.forEach(s => { s.saldo = s.r - s.p; ac += s.saldo; s.ac = ac; });
   const mx = Math.max(1, ...sem.map(s => Math.max(s.r, s.p))), cor = v => v >= 0 ? "var(--good)" : "var(--bad)", sinal = v => (v < 0 ? "− " : "") + brl(Math.abs(v));
   const d7 = sem.flatMap(s => Object.values(s.dias)).filter(o => o.d < maisDias(hoje, 7)), r7 = d7.reduce((q, o) => q + o.r, 0), p7 = d7.reduce((q, o) => q + o.p, 0);
@@ -862,7 +864,6 @@ function renderCaixa() {
     <div class="mstats"><div><span>A receber</span><b>${brl(r7)}</b><small>${d7.reduce((q, o) => q + o.rq, 0)} títulos</small></div>
       <div><span>A pagar</span><b>${brl(p7)}</b><small>${d7.reduce((q, o) => q + o.pq, 0)} títulos</small></div>
       <div><span>Saldo 8 semanas</span><b style="color:${cor(ac)};white-space:nowrap">${sinal(ac)}</b><small>títulos emitidos</small></div></div>`;
-  const vr = cx.vencido_receber || {}, vp = cx.vencido_pagar || {};
   $("#cx-alerta").innerHTML = (vr.valor > 0 ? `<div class="cxal"><span>A receber vencido e não pago · ${vr.qtd} títulos</span><b>${brl(vr.valor)}</b></div>` : "") + (vp.valor > 0 ? `<div class="cxal"><span>A pagar vencido e em aberto · ${vp.qtd} títulos</span><b>${brl(vp.valor)}</b></div>` : "");
   $("#cx-sem").innerHTML = sem.map(s => `<div class="cxrow" data-sem="${s.i}" role="button">
     <div class="cxh"><div><b>Semana ${s.i + 1}</b> <span>${dm(s.ini)} a ${dm(s.fim)}${s.parcial ? " · parcial" : ""}</span></div><b style="color:${cor(s.saldo)}">${sinal(s.saldo)}</b></div>
@@ -882,8 +883,23 @@ function abrirSemanaCx(i) {
   $("#det-extra").innerHTML = "";
   $("#det-itens").previousElementSibling.textContent = "Por dia";
   const dias = Object.values(s.dias).sort((a, b) => a.d - b.d);
-  $("#det-itens").innerHTML = dias.length ? dias.map(o => `<tr><td><div class="cli">${dm(o.d)} · ${DS[o.d.getDay()]}</div><div class="mt">receber ${brl2(o.r)} (${o.rq}) · pagar ${brl2(o.p)} (${o.pq})</div></td><td class="v" style="color:${o.r - o.p >= 0 ? "var(--good)" : "var(--bad)"}">${sinal(o.r - o.p)}</td></tr>`).join("") : `<tr><td class="empty">Nenhum título nesta semana.</td></tr>`;
+  $("#det-itens").innerHTML = dias.length ? dias.map(o => `<tr class="cxdia" data-sem="${i}" data-k="${o.k}" role="button" style="cursor:pointer"><td><div class="cli">${dm(o.d)} · ${DS[o.d.getDay()]} <span class="chev">›</span></div><div class="mt">receber ${brl2(o.r)} (${o.rq}) · pagar ${brl2(o.p)} (${o.pq})</div></td><td class="v" style="color:${o.r - o.p >= 0 ? "var(--good)" : "var(--bad)"}">${sinal(o.r - o.p)}</td></tr>`).join("") : `<tr><td class="empty">Nenhum título nesta semana.</td></tr>`;
   $("#det .sheet-b").scrollTop = 0; $("#det").showModal();
+}
+function abrirDiaCx(i, k) {
+  const s = CX_SEM[i], o = s && s.dias[k]; if (!o) return;
+  const dm = d => String(d.getDate()).padStart(2, "0") + "/" + String(d.getMonth() + 1).padStart(2, "0"), DS = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"], dv = v => fmtData(v);
+  $("#det-title").textContent = `${dm(o.d)} · ${DS[o.d.getDay()]}`;
+  $("#det-sub").innerHTML = `<a href="#" id="det-back" style="color:var(--s1);text-decoration:none;font-weight:600">‹ Voltar</a> &nbsp; Semana ${i + 1}`;
+  $("#det-sub").querySelector("#det-back").addEventListener("click", e => { e.preventDefault(); abrirSemanaCx(i); });
+  const kv = (a, b) => `<div class="kv"><span>${a}</span><b>${b}</b></div>`, sd = o.r - o.p;
+  $("#det-kv").innerHTML = kv("A receber", `${brl2(o.r)} · ${o.rq} título${o.rq === 1 ? "" : "s"}`) + kv("A pagar", `${brl2(o.p)} · ${o.pq} título${o.pq === 1 ? "" : "s"}`) + kv("Saldo do dia", `<span style="color:${sd >= 0 ? "var(--good)" : "var(--bad)"}">${(sd < 0 ? "− " : "") + brl2(Math.abs(sd))}</span>`);
+  const lr = t => `<tr><td><div class="cli">${esc(t.nome || "—")}</div><div class="mt">venc. ${dv(t.venc)}${t.doc ? " · " + esc(t.doc) : ""}${t.cob ? " · " + esc(t.cob) : ""}</div></td><td class="v">${brl2(t.valor)}</td></tr>`;
+  const lp = t => `<tr><td><div class="cli">${esc(t.nome || t.hist || "—")}</div><div class="mt">venc. ${dv(t.venc)}${t.doc ? " · NF " + esc(t.doc) : ""}${t.hist && t.nome ? " · " + esc(t.hist) : ""}</div></td><td class="v">${brl2(t.valor)}</td></tr>`;
+  $("#det-extra").innerHTML = `<h4 class="label" style="margin:14px 0 4px">A receber</h4><table>${o.tr.length ? o.tr.slice().sort((a, b) => b.valor - a.valor).map(lr).join("") : `<tr><td class="empty">Nenhum título a receber neste dia.</td></tr>`}</table>`;
+  $("#det-itens").previousElementSibling.textContent = "A pagar";
+  $("#det-itens").innerHTML = o.tp.length ? o.tp.slice().sort((a, b) => b.valor - a.valor).map(lp).join("") : `<tr><td class="empty">Nenhum título a pagar neste dia.</td></tr>`;
+  $("#det .sheet-b").scrollTop = 0;
 }
 // Frete sobre vendas (contas a pagar do Winthor, por competência) e comparativo mensal
 function renderFrete() {
@@ -1309,6 +1325,7 @@ $("#det").addEventListener("input", e => { const P = REP_PED, c = e.target.class
   $("#rpp-total").textContent = brl2(P.itens.reduce((a, x) => a + (Math.floor(+x.cx) || 0) * repProd(x.cod).un_cx * repPreco(x, repProd(x.cod)), 0)); });
 $("#det").addEventListener("change", e => { const P = REP_PED; if (!P || e.target.id !== "rpp-add" || !e.target.value) return; repLerForm(); P.itens.push({ cod: +e.target.value, cx: 1 }); P.msg = ""; desenharPedidoRep(); });
 $("#det").addEventListener("click", e => { if (!REP_PED) return; const dl = e.target.closest(".rpp-del"); if (dl) { repLerForm(); REP_PED.itens.splice(+dl.dataset.i, 1); REP_PED.msg = ""; return desenharPedidoRep(); } const pz = e.target.closest(".rpp-pzo"); if (pz) { repLerForm(); REP_PED.prazo = pz.dataset.v; return desenharPedidoRep(); } if (e.target.closest("#rpp-gerar")) repGerarPdf(); else if (e.target.closest("#rpp-zap")) repEnviarZap(); });
+$("#det-itens").addEventListener("click", e => { const el = e.target.closest(".cxdia"); if (el) abrirDiaCx(+el.dataset.sem, el.dataset.k); });
 $("#det").addEventListener("close", () => { REP_PED = null; $("#det-itens").previousElementSibling.textContent = "Itens"; });
 repIniciar();
 $("#rp-q").addEventListener("input", e => { RP_Q = e.target.value; renderRep(); });
