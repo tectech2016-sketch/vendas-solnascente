@@ -166,6 +166,15 @@ dialog.sheet:not([open]){display:none}
 .sheet-h{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:16px 16px 10px;border-bottom:1px solid var(--grid)}
 .sheet-b{overflow:auto;padding:4px 16px calc(16px + env(safe-area-inset-bottom))}
 tr.tot td{font-weight:600;border-top:2px solid var(--axis)}
+.rprow{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-top:1px solid var(--grid)}.rprow>div:first-child{min-width:0}
+.rprow .cli{font-size:13.5px;font-weight:600;line-height:1.25}.rprow .mt{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.35}.rprow .rv{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;font-size:13.5px}.rprow .rv small{display:block;font-size:11.5px;color:var(--muted);font-weight:400;margin-top:2px}
+.rpf{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding-bottom:10px}.rpf b{font-size:15px}.rpf span{font-size:12px;color:var(--muted)}
+.rptag{display:inline-block;font-size:11px;font-weight:600;border-radius:999px;padding:2px 8px;margin-top:4px}
+.cxrow{padding:14px 0;border-top:1px solid var(--grid);cursor:pointer}.cxrow:first-child{border-top:0}
+.cxh{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.cxh b{font-size:15px}.cxh span{font-size:12px;color:var(--muted)}
+.cxbar{display:grid;grid-template-columns:62px 1fr auto;align-items:center;gap:8px;margin-top:7px;font-size:12.5px;font-variant-numeric:tabular-nums}.cxbar>span:first-child{color:var(--muted)}
+.cxbar i{display:block;height:8px;border-radius:4px;min-width:2px}.cxbar small{color:var(--muted);font-size:11px}
+.cxal{display:flex;justify-content:space-between;gap:10px;align-items:center;background:color-mix(in srgb,var(--bad) 8%,var(--surface));border:1px solid color-mix(in srgb,var(--bad) 25%,var(--border));border-radius:14px;padding:11px 14px;margin:10px 0 0;font-size:13px}.cxal b{color:var(--bad);white-space:nowrap}
 .cmp{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums} .cmp th{font-size:11px;font-weight:400;color:var(--muted);text-align:right;padding:8px 0 6px 10px} .cmp td{font-size:12.5px;text-align:right;padding:9px 0 9px 8px;vertical-align:top;border-top:1px solid var(--grid);white-space:nowrap} .cmp th:first-child,.cmp td:first-child{text-align:left;padding-left:0} .cmp td:first-child{font-weight:600} .cmp small{display:block;font-size:10.5px;color:var(--muted);font-weight:400}
 .imarg{font-size:12.5px;font-weight:600;color:var(--ink);margin-top:2px}.imarg.neg{color:var(--bad)}
 </style>
@@ -258,6 +267,20 @@ tr.tot td{font-weight:600;border-top:2px solid var(--axis)}
     <div class="card"><table id="o-lista"></table></div>
   </section>
 
+  <section id="tab-cx" hidden>
+    <div class="card" id="cx-top"></div>
+    <div id="cx-alerta"></div>
+    <h2 style="margin-top:4px">Títulos a vencer <small>próximas 8 semanas</small></h2>
+    <div class="card" id="cx-sem" style="padding:4px 16px"></div>
+    <p class="vsub" style="margin:10px 4px 0;line-height:1.5">Recebimentos pela data de entrada na conta (D+1) e pagamentos pelo vencimento (sábado e domingo vão para a segunda). Só entram títulos já emitidos: vendas e compras futuras não aparecem.</p>
+  </section>
+  <section id="tab-rep" hidden>
+    <div class="card" id="rp-top"></div>
+    <div class="seg wide" id="rp-seg" style="display:flex;margin:14px 0 10px"><button data-a="repor" aria-pressed="true" style="padding:8px 4px;font-size:13px">Repor agora</button><button data-a="ideal" aria-pressed="false" style="padding:8px 4px;font-size:13px">Estoque ideal</button><button data-a="excesso" aria-pressed="false" style="padding:8px 4px;font-size:13px">Excesso</button></div>
+    <input type="search" id="rp-q" placeholder="Buscar produto ou fornecedor" style="width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:12px;background:var(--surface);color:var(--ink);font:inherit;font-size:15px;margin-bottom:10px">
+    <div id="rp-list"></div>
+    <p class="vsub" id="rp-nota" style="margin:10px 4px 0;line-height:1.5"></p>
+  </section>
   <section id="tab-vend" hidden>
     <div class="card" id="v-equipe" hidden style="margin-top:4px"></div>
     <h2 style="margin-top:4px">Ranking do mês <small id="v-rank-sub">por vendedora · meta do Winthor</small></h2>
@@ -269,6 +292,8 @@ tr.tot td{font-weight:600;border-top:2px solid var(--axis)}
 <nav>
   <button data-tab="fat" aria-current="page"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>Faturamento</button>
   <button data-tab="orc" aria-current="false"><svg viewBox="0 0 24 24"><path d="M6 3h9l5 5v13H6z"/><path d="M14 3v6h6"/><path d="M9 13h6M9 17h6"/></svg>Orçamentos</button>
+  <button data-tab="cx" aria-current="false" style="display:none"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/></svg>Caixa</button>
+  <button data-tab="rep" aria-current="false" style="display:none"><svg viewBox="0 0 24 24"><path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>Reposição</button>
   <button data-tab="vend" aria-current="false"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.5A5 5 0 0121.5 20"/></svg>Vendedoras</button>
 </nav>
 
@@ -287,7 +312,7 @@ tr.tot td{font-weight:600;border-top:2px solid var(--axis)}
 <script>
 // ===== Configuração =====
 const EMPCFG = window.EMP === "sol"
-  ? { nome: "Sol Nascente", app: "vendas_sol", pre: "sol_", semOrc: true, frete: true, comparativo: true, vend: "vendedor", Vend: "Vendedor", vends: "vendedores", Vends: "Vendedores" }
+  ? { nome: "Sol Nascente", app: "vendas_sol", pre: "sol_", semOrc: true, frete: true, comparativo: true, caixa: true, reposicao: true, vend: "vendedor", Vend: "Vendedor", vends: "vendedores", Vends: "Vendedores" }
   : { nome: "FiberFix", app: "vendas", pre: "", semOrc: false, vend: "vendedora", Vend: "Vendedora", vends: "vendedoras", Vends: "Vendedoras" };
 const DATA_BASE = "https://script.google.com/macros/s/AKfycbz3CLGSgvEKRoFI5FyTBDnnF3l-4v5pFx5rO_UyLZn1gr8AeSO0e78ugg60umRLcaNO/exec?app=" + EMPCFG.app;
 let PW_ATUAL = load("vendas_pw");
@@ -499,7 +524,7 @@ function render(d) {
   const nh = notasDoDia(hojeStr(isNaN(dt) ? hoje() : dt)); $("#k-hoje-sub").textContent = nh.length ? `${nh.length} nota${nh.length > 1 ? "s" : ""}` : (f.notas_mes ? "nenhuma nota ainda" : "");
   renderMeta(f);
   renderAndamento(d);
-  renderMargem(); renderFrete();
+  renderMargem(); renderFrete(); renderCaixa(); renderRep();
   renderAlerta(d);
   { const nl = notasDoDia(hojeStr(isNaN(dt) ? hoje() : dt)); const v = nl.reduce((a, n) => a + n.valor, 0), c = nl.reduce((a, n) => a + (n.custo || 0), 0);
     $("#k-lb").textContent = nl.length ? brl(v - c) : "—";
@@ -672,6 +697,183 @@ function abrirPed(num) {
 }
 let MPERIODO = load("vendas_mperiodo") || "mes";
 const NOMEP = { dia: "hoje", semana: "na semana", quinzena: "na quinzena", mes: "no mês", tri: "no trimestre" };
+// Reposição e estoque ideal: mesmos dados, regras e senha do painel de Reposição do site (lidos direto dele)
+const REP_URL = "https://script.google.com/macros/s/AKfycbywuHe-TaCVdbKx5uTMynbg6SyYny_A8PEOMe1lJG1iKvKTbOuunmAZYb3t-hoQFjxFVg/exec";
+let REP_T = 0, RP_ABA = "repor", RP_Q = "", REP = null, REP_PW = "", REP_MSG = "", REP_BUSY = false, REP_PED = null;
+async function repPost(body) {
+  const r = await fetch(REP_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) });
+  const j = await r.json(); if (!j.ok) throw new Error(j.msg || "Não foi possível falar com o painel de Reposição."); return j;
+}
+async function repCarregar(pw) {
+  if (REP_BUSY) return; REP_BUSY = true; REP_MSG = ""; renderRep();
+  try { const j = await repPost({ acao: "dados", senha: pw }); REP = j; REP_PW = pw; store("rep_pw", pw); try { store("rep_cache", JSON.stringify(j)); } catch (e) { } }
+  catch (e) { REP_MSG = e.message || String(e); if (/senha/i.test(REP_MSG)) { REP_PW = ""; store("rep_pw", null); REP = null; store("rep_cache", null); } }
+  REP_BUSY = false; renderRep();
+}
+function repIniciar() { if (!EMPCFG.reposicao) return; REP_T = Date.now(); REP_PW = load("rep_pw") || ""; try { REP = JSON.parse(load("rep_cache") || "null"); } catch (e) { REP = null; } if (REP_PW) repCarregar(REP_PW); }
+const repGrupo = p => p.grupo ?? p.codfornec, repProd = cod => (REP.produtos || []).find(p => p.cod == cod);
+const repChegou = (p, r) => !!(p && p.ultima_entrada && p.ultima_entrada > String(r.data).slice(0, 10));
+// pedidos já gerados (últimos 30 dias) que ainda não chegaram, do mais novo para o mais antigo
+const repPedidos = g => (REP.pedidos_gerados || []).filter(r => ((REP.fornecedores || {})[String(r.codfornec)] || {}).grupo == g || r.codfornec == g).filter(r => !(r.itens || []).length || r.itens.some(it => !repChegou(repProd(it.cod), r))).sort((a, b) => a.data < b.data ? 1 : -1);
+function renderRep() {
+  const btn = document.querySelector('nav button[data-tab="rep"]'); btn.style.display = EMPCFG.reposicao ? "" : "none"; if (!EMPCFG.reposicao) return;
+  const R = REP, temDados = R && (R.produtos || []).length;
+  ["#rp-seg", "#rp-q"].forEach(q => $(q).style.display = temDados ? (q === "#rp-seg" ? "flex" : "") : "none");
+  if (!temDados) {
+    $("#rp-list").innerHTML = ""; $("#rp-nota").textContent = "";
+    $("#rp-top").innerHTML = `<div class="label" style="margin:0">Reposição e estoque ideal</div><p class="vsub" style="margin:8px 0 12px;line-height:1.5">Esta aba usa a mesma senha do painel de Reposição do site. Ela fica guardada só neste aparelho.</p>
+      <input type="password" id="rp-pw" placeholder="Senha do painel de Reposição" autocomplete="current-password" style="width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--bg);color:var(--ink);font:inherit;font-size:16px">
+      <button class="btn" id="rp-entrar" style="width:100%;margin-top:10px;padding:12px;background:var(--s1);color:#fff;border-color:var(--s1);font-weight:600;justify-content:center;text-align:center"${REP_BUSY ? " disabled" : ""}>${REP_BUSY ? "Carregando…" : "Entrar"}</button>
+      ${REP_MSG ? `<p class="luc-bad" style="margin:10px 0 0;font-size:13px">${esc(REP_MSG)}</p>` : ""}`;
+    return;
+  }
+  const rs = R.resumo || {}, n0 = x => Math.round(x || 0).toLocaleString("pt-BR"), dd = x => x == null ? "—" : String(x).replace(".", ",");
+  $("#rp-top").innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div class="label" style="margin:0">Repor agora</div><span class="vsub" style="margin:0">${REP_BUSY ? "atualizando…" : "calculado " + (R.gerado_em ? fmtData(R.gerado_em.slice(0, 10)) + " às " + R.gerado_em.slice(11, 16) : "")}</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px"><div class="hero">${brl(rs.valor_repor)}</div><span class="mpill late">${rs.itens_repor} itens abaixo do ponto</span></div>
+    <div class="mstats"><div><span>Estoque hoje</span><b>${brl(rs.estoque_disponivel)}</b><small>${dd(rs.dias_hoje)} dias de venda</small></div>
+      <div><span>Estoque ideal</span><b>${brl(rs.estoque_ideal_medio)}</b><small>${dd(rs.dias_ideal)} dias de venda</small></div>
+      <div><span>Excesso</span><b style="color:var(--bad)">${brl(rs.excesso_total)}</b><small>acima do máximo</small></div></div>
+    ${REP_MSG ? `<p class="luc-bad" style="margin:10px 0 0;font-size:13px">${esc(REP_MSG)}</p>` : ""}`;
+  const q = RP_Q.trim().toLowerCase(), ok = p => !q || (p.produto + " " + p.fornecedor + " " + p.cod).toLowerCase().includes(q);
+  const F = R.fornecedores || {}, nomeF = p => titulo((F[String(repGrupo(p))] || {}).nome || p.fornecedor || "");
+  const dmB = v => fmtData(String(v).slice(0, 10));
+  let h = "", nota = "";
+  if (RP_ABA === "repor") {
+    const it = (R.produtos || []).filter(p => p.pedir_un > 0 && ok(p)), g = {}; it.forEach(p => (g[repGrupo(p)] = g[repGrupo(p)] || []).push(p));
+    const soma = l => l.reduce((a, p) => a + p.pedir_valor, 0);
+    h = Object.keys(g).sort((a, b) => soma(g[b]) - soma(g[a])).map(f => { const l = g[f].sort((a, b) => (a.cobertura_dias || 0) - (b.cobertura_dias || 0)), fo = F[String(f)] || {}, feitos = repPedidos(f), u = feitos[0];
+      const marcaI = p => { for (const r of feitos) { if (repChegou(p, r)) continue; const x = (r.itens || []).find(y => y.cod == p.cod); if (x) return `<div class="mt" style="color:var(--good);font-weight:600">✓ pedido gerado ${dmB(r.data)}: ${n0(x.cx)} cx</div>`; } return ""; };
+      return `<div class="card" style="margin-bottom:10px;padding:14px 16px 12px"><div class="rpf"><div><b>${esc(nomeF(l[0]))}</b><br><span>${l.length} ite${l.length > 1 ? "ns" : "m"}${fo.prazo ? " · prazo " + esc(fo.prazo) : ""}</span></div><b>${brl(soma(l))}</b></div>
+        ${u ? `<div class="mt" style="font-size:12px;color:var(--good);font-weight:600;margin:-4px 0 8px">✓ Pedido gerado em ${dmB(u.data)}${u.solicitante ? " · " + esc(u.solicitante) : ""}${u.total != null ? " · " + brl(u.total) : ""}${feitos.length > 1 ? ` (+${feitos.length - 1})` : ""}</div>` : ""}` +
+        l.map(p => { const c = p.cobertura_dias, urg = c != null && c <= 5;
+          return `<div class="rprow"><div><div class="cli">${esc(p.produto)}</div><div class="mt">cód. ${p.cod} · <span style="${urg ? "color:var(--bad);font-weight:600" : ""}">${c === 0 ? "zerado" : c == null ? "sem giro" : "dura " + n0(c) + " dias"}</span> · disponível ${n0(p.disponivel)}${p.em_pedido ? " · " + n0(p.em_pedido) + " em pedido" : ""}</div>${marcaI(p)}</div>
+            <div class="rv"><b>${n0(p.pedir_cx)} cx</b><small>${n0(p.pedir_un)} un · ${brl(p.pedir_valor)}</small></div></div>`; }).join("") +
+        `<button class="btn rp-ped" data-g="${esc(f)}" style="width:100%;margin-top:6px;padding:11px;font-weight:600;color:var(--s1);border-color:var(--s1);justify-content:center;text-align:center">Gerar pedido de compra</button></div>`; }).join("") || `<div class="card"><div class="empty">Nenhum item para repor agora.</div></div>`;
+    nota = "Quantidade sugerida para chegar ao estoque máximo, em caixas fechadas, já descontando o que está em pedido. Valor pelo preço da última entrada. O pedido gera um PDF para enviar ao fornecedor; ele não é lançado no Winthor.";
+  } else if (RP_ABA === "ideal") {
+    const ordem = { "Abaixo do ponto de pedido": 0, "Excesso": 1, "Em falta há mais de 30 dias (avaliar)": 2, "Sem venda em 90 dias": 3, "Dentro da faixa": 4 };
+    const corS = { "Abaixo do ponto de pedido": "var(--bad)", "Excesso": "#b26a00", "Dentro da faixa": "var(--good)" }, rot = { "Abaixo do ponto de pedido": "Repor", "Excesso": "Excesso", "Em falta há mais de 30 dias (avaliar)": "Em falta +30 dias", "Sem venda em 90 dias": "Sem venda 90 dias", "Dentro da faixa": "Na faixa" };
+    const l = (R.produtos || []).filter(ok).sort((a, b) => (ordem[a.situacao] - ordem[b.situacao]) || (b.venda_30d - a.venda_30d));
+    h = `<div class="card" style="padding:4px 16px"><div class="vsub" style="padding:10px 0 6px">${l.length} produtos</div>` + l.slice(0, 250).map(p => { const c = corS[p.situacao] || "var(--muted)";
+      return `<div class="rprow"><div><div class="cli">${esc(p.produto)}</div><div class="mt">${esc(nomeF(p))}</div><div class="mt">cód. ${p.cod} · vende ${dd(p.venda_dia)}/dia</div><span class="rptag" style="color:${c};background:color-mix(in srgb,${c} 12%,transparent)">${rot[p.situacao] || esc(p.situacao)}</span></div>
+        <div class="rv"><b>${n0(p.disponivel)}</b><small>ponto ${p.ponto_pedido == null ? "—" : n0(p.ponto_pedido)} · máx ${p.estoque_maximo == null ? "—" : n0(p.estoque_maximo)}</small><small>${p.cobertura_dias == null ? "sem giro" : n0(p.cobertura_dias) + " dias"}</small></div></div>`; }).join("") + `</div>`;
+    nota = "Ponto de pedido: abaixo dele, é hora de comprar. Máximo: quanto ter logo após receber. Stoq e Osara (entrega em D+1): pedir com 6 dias de cobertura, máximo de 8. Demais: pedir no intervalo de entrega (7 a 20 dias), máximo de intervalo + 10, até 30 dias.";
+  } else {
+    const l = (R.excesso || []).filter(ok), tot = l.reduce((a, p) => a + p.excesso_valor, 0);
+    h = `<div class="card" style="padding:4px 16px"><div class="rpf" style="padding:12px 0 8px"><span>${l.length} produtos com excesso</span><b>${brl(tot)}</b></div>` + l.map(p =>
+      `<div class="rprow"><div><div class="cli">${esc(p.produto)}</div><div class="mt">${esc(p.sugestao || "")}</div><div class="mt">cód. ${p.cod} · tem ${n0(p.disponivel)} · máx ${n0(p.estoque_maximo)}${p.desconto_max != null ? " · desconto até " + Math.round(p.desconto_max * 100) + "%" : ""}</div></div>
+        <div class="rv"><b>${brl(p.excesso_valor)}</b><small>${n0(p.excesso_un)} un</small><small>${p.meses_para_sair == null ? "sem venda" : dd(p.meses_para_sair) + " meses"}</small></div></div>`).join("") + `</div>`;
+    nota = "Excesso é o que passa do estoque máximo, a custo. Meses para sair: no ritmo de venda dos últimos 30 dias. Desconto máximo sem prejuízo considera só o custo do produto, sem frete e comissão.";
+  }
+  $("#rp-list").innerHTML = h; $("#rp-nota").textContent = nota;
+  document.querySelectorAll("#rp-seg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.a === RP_ABA));
+}
+// Pedido de compra: mesma lógica do painel do site (quantidade e prazo editáveis, incluir outros produtos do fornecedor, PDF gerado pelo painel)
+function abrirPedidoRep(g) {
+  const F = (REP.fornecedores || {})[String(g)] || {}, sug = (REP.produtos || []).filter(p => repGrupo(p) == g && p.pedir_un > 0).sort((a, b) => (a.cobertura_dias || 0) - (b.cobertura_dias || 0));
+  REP_PED = { g, nome: titulo(F.nome || (sug[0] || {}).fornecedor || ""), itens: sug.map(p => ({ cod: p.cod, cx: p.pedir_cx })), prazo: F.prazo || "", quem: load("rep_quem") || "", obs: "", msg: "", erro: false, busy: false, arq: null, feito: null };
+  DET_BACK = null; desenharPedidoRep(); $("#det").showModal();
+}
+function desenharPedidoRep() {
+  const P = REP_PED; if (!P) return; const n0 = x => Math.round(x || 0).toLocaleString("pt-BR");
+  const linhas = P.itens.map(it => ({ it, p: repProd(it.cod) })).filter(x => x.p), tot = linhas.reduce((a, x) => a + (Math.floor(+x.it.cx) || 0) * x.p.un_cx * (x.p.preco || 0), 0);
+  const inp = "width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit;font-size:16px;margin-top:4px";
+  $("#det-title").textContent = "Pedido de compra · " + P.nome;
+  $("#det-sub").innerHTML = P.feito ? `Pedido ${esc(P.feito.numero)} gerado` : `Total <b style="color:var(--ink)" id="rpp-total">${brl2(tot)}</b> · preço da última entrada`;
+  $("#det-kv").innerHTML = "";
+  if (P.feito) {
+    $("#det-extra").innerHTML = `<div class="card" style="margin-top:12px;text-align:center;padding:18px 16px"><div class="hero" style="font-size:22px;color:var(--good)">✓ PDF pronto</div><p class="vsub" style="margin:8px 0 14px;line-height:1.5">${P.feito.itens} ite${P.feito.itens > 1 ? "ns" : "m"} · ${brl2(P.feito.total)}${P.feito.salvo ? "<br>Cópia salva no Drive, pasta pedidos-compra." : ""}</p>
+      <button class="btn" id="rpp-zap" style="width:100%;padding:13px;background:#128c4a;color:#fff;border-color:#128c4a;font-weight:600;font-size:15px;justify-content:center;text-align:center">Enviar pelo WhatsApp</button>
+      <a id="rpp-baixar" class="btn" href="${P.url}" download="${esc(P.feito.nome)}" style="display:block;width:100%;margin-top:10px;padding:12px;text-align:center;text-decoration:none;color:var(--ink)">Baixar o PDF</a>
+      ${P.msg ? `<p class="${P.erro ? "luc-bad" : "vsub"}" style="margin:10px 0 0;font-size:13px">${esc(P.msg)}</p>` : ""}</div>`;
+    $("#det-itens").previousElementSibling.textContent = ""; $("#det-itens").innerHTML = ""; return;
+  }
+  const outros = (REP.produtos || []).filter(p => repGrupo(p) == P.g && !P.itens.some(i => i.cod == p.cod)).sort((a, b) => a.produto.localeCompare(b.produto));
+  $("#det-extra").innerHTML = `<div style="margin-top:6px"><label class="vsub">Prazo de pagamento<input id="rpp-prazo" maxlength="80" placeholder="ex.: 28/35/42 dias" value="${esc(P.prazo)}" style="${inp}"></label>
+    <label class="vsub" style="display:block;margin-top:10px">Solicitante<input id="rpp-quem" maxlength="60" placeholder="Seu nome" value="${esc(P.quem)}" style="${inp}"></label>
+    <label class="vsub" style="display:block;margin-top:10px">Observações (opcional)<input id="rpp-obs" maxlength="400" value="${esc(P.obs)}" style="${inp}"></label></div>`;
+  $("#det-itens").previousElementSibling.textContent = "Itens · quantidade em caixas";
+  $("#det-itens").innerHTML = linhas.map(({ it, p }, i) => `<tr><td><div class="cli">${esc(p.produto)}</div><div class="mt">cód. ${p.cod} · ${n0(p.un_cx)} un/cx · vende ${n0(p.venda_90d / 3)}/mês · tem ${n0(p.disponivel)}</div><div class="mt" id="rpp-l${i}">${n0((Math.floor(+it.cx) || 0) * p.un_cx)} un · ${brl2((Math.floor(+it.cx) || 0) * p.un_cx * (p.preco || 0))}</div></td>
+      <td class="v" style="white-space:nowrap"><input class="rpp-cx" data-i="${i}" type="number" inputmode="numeric" min="0" step="1" value="${it.cx}" style="width:74px;padding:9px 8px;text-align:right;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit;font-size:16px"> cx</td></tr>`).join("")
+    + `<tr><td colspan="2" style="border:0;padding-top:12px">${outros.length ? `<select id="rpp-add" style="${inp};margin-top:0"><option value="">Adicionar outro produto deste fornecedor…</option>${outros.map(p => `<option value="${p.cod}">${esc(p.produto)} (tem ${n0(p.disponivel)})</option>`).join("")}</select>` : ""}
+      <button class="btn" id="rpp-gerar" style="width:100%;margin-top:12px;padding:13px;background:var(--s1);color:#fff;border-color:var(--s1);font-weight:600;font-size:15px;justify-content:center;text-align:center"${P.busy ? " disabled" : ""}>${P.busy ? "Gerando o PDF…" : "Gerar PDF"}</button>
+      ${P.msg ? `<p class="${P.erro ? "luc-bad" : "vsub"}" style="margin:10px 0 0;font-size:13px">${esc(P.msg)}</p>` : ""}</td></tr>`;
+}
+function repLerForm() { const P = REP_PED; if (!P || P.feito) return; const v = id => { const e = document.getElementById(id); return e ? e.value : ""; }; P.prazo = v("rpp-prazo"); P.quem = v("rpp-quem"); P.obs = v("rpp-obs"); }
+async function repGerarPdf() {
+  const P = REP_PED; repLerForm(); const itens = P.itens.map(it => ({ cod: it.cod, cx: Math.floor(+it.cx) || 0 })).filter(it => it.cx >= 1);
+  if (!itens.length) { P.msg = "Informe a quantidade de caixas de pelo menos um item."; P.erro = true; return desenharPedidoRep(); }
+  store("rep_quem", P.quem); P.busy = true; P.msg = ""; desenharPedidoRep();
+  try { const r = await repPost({ acao: "pedido", senha: REP_PW, pedido: { codfornec: P.g, prazo: P.prazo, obs: P.obs, solicitante: P.quem, itens } });
+    const bin = atob(r.pdf), bytes = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    P.arq = new File([bytes], r.nome, { type: "application/pdf" }); P.url = URL.createObjectURL(P.arq); P.feito = { numero: r.numero, nome: r.nome, total: r.total, itens: r.itens, salvo: r.salvo }; P.msg = ""; P.erro = false;
+    if (r.pedidos_gerados) { REP.pedidos_gerados = r.pedidos_gerados; try { store("rep_cache", JSON.stringify(REP)); } catch (e) { } renderRep(); }
+  } catch (e) { P.msg = e.message || String(e); P.erro = true; }
+  P.busy = false; desenharPedidoRep();
+}
+// o envio abre a folha de compartilhamento do celular já com o PDF anexado; quem escolhe a conversa do fornecedor é a pessoa
+async function repEnviarZap() {
+  const P = REP_PED; if (!P || !P.arq) return; const txt = `Pedido de compra ${P.feito.numero} · Sol Nascente Produtos Orientais\n${P.feito.itens} itens · ${brl2(P.feito.total)}\nFavor confirmar preços, prazo de pagamento e data de entrega.`;
+  try { if (navigator.canShare && navigator.canShare({ files: [P.arq] })) { await navigator.share({ files: [P.arq], title: P.feito.nome, text: txt }); return; } P.msg = "Este aparelho não permite anexar o PDF direto. Baixe o PDF e anexe na conversa do fornecedor."; P.erro = true; }
+  catch (e) { if (e && e.name === "AbortError") return; P.msg = "Não foi possível abrir o compartilhamento. Baixe o PDF e anexe na conversa do fornecedor."; P.erro = true; }
+  desenharPedidoRep();
+}
+const titulo = s => String(s).toLowerCase().replace(/(^|[\s.&/-])([a-zà-ú])/g, (m, a, b) => a + b.toUpperCase()).replace(/\b(Ltda|Me|Epp|Sa)\.?$/i, "").trim();
+// Caixa: títulos a receber e a pagar das próximas 8 semanas, com as regras de caixa combinadas
+function feriado(d) {   // feriados nacionais (fixos + Sexta-feira Santa, Carnaval e Corpus Christi)
+  const y = d.getFullYear(), k = (m, x) => new Date(y, m - 1, x).getTime(), t = new Date(y, d.getMonth(), d.getDate()).getTime();
+  const a = y % 19, b = Math.floor(y / 100), c = y % 100, h = (19 * a + b - Math.floor(b / 4) - Math.floor((b - Math.floor((b + 8) / 25) + 1) / 3) + 15) % 30, i2 = (32 + 2 * (b % 4) + 2 * Math.floor(c / 4) - h - c % 4) % 7, m2 = Math.floor((a + 11 * h + 22 * i2) / 451);
+  const pm = Math.floor((h + i2 - 7 * m2 + 114) / 31), pd = (h + i2 - 7 * m2 + 114) % 31 + 1, pas = new Date(y, pm - 1, pd), mov = n => new Date(y, pm - 1, pd + n).getTime();
+  return [k(1, 1), k(4, 21), k(5, 1), k(9, 7), k(10, 12), k(11, 2), k(11, 15), k(11, 20), k(12, 25), mov(-48), mov(-47), mov(-2), mov(60)].includes(t);
+}
+const diaUtil = d => d.getDay() !== 0 && d.getDay() !== 6 && !feriado(d);
+const maisDias = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+// recebimento: o cliente paga no vencimento (ou no próximo dia útil) e o dinheiro entra no dia seguinte
+function entraEm(venc) { let d = new Date(venc + "T00:00:00"); while (!diaUtil(d)) d = maisDias(d, 1); return maisDias(d, 1); }
+// pagamento: pelo vencimento; sábado e domingo vão para a segunda
+function pagaEm(venc) { const d = new Date(venc + "T00:00:00"), w = d.getDay(); return w === 6 ? maisDias(d, 2) : w === 0 ? maisDias(d, 1) : d; }
+let CX_SEM = [];
+function renderCaixa() {
+  const cx = (DATA || {}).caixa, btn = document.querySelector('nav button[data-tab="cx"]');
+  const tem = EMPCFG.caixa && cx && ((cx.receber || []).length || (cx.pagar || []).length);
+  btn.style.display = tem ? "" : "none"; if (!tem) return;
+  const ref = refData(), hoje = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate()), seg0 = maisDias(hoje, -((hoje.getDay() + 6) % 7));
+  const dm = d => String(d.getDate()).padStart(2, "0") + "/" + String(d.getMonth() + 1).padStart(2, "0"), iso = d => hojeStr(d);
+  const sem = Array.from({ length: 8 }, (_, i) => ({ i, ini: i ? maisDias(seg0, 7 * i) : hoje, fim: maisDias(seg0, 7 * i + 6), parcial: !i && hoje > seg0, r: 0, rq: 0, p: 0, pq: 0, dias: {} }));
+  const lancar = (d, v, q, tipo) => { const n = Math.floor((d - seg0) / 6048e5); if (d < hoje || n < 0 || n > 7) return; const s = sem[n], k = iso(d), o = s.dias[k] || (s.dias[k] = { d, r: 0, rq: 0, p: 0, pq: 0 });
+    if (tipo === "r") { s.r += v; s.rq += q; o.r += v; o.rq += q; } else { s.p += v; s.pq += q; o.p += v; o.pq += q; } };
+  (cx.receber || []).forEach(x => lancar(entraEm(x.venc), x.valor, x.qtd, "r")); (cx.pagar || []).forEach(x => lancar(pagaEm(x.venc), x.valor, x.qtd, "p"));
+  CX_SEM = sem; let ac = 0; sem.forEach(s => { s.saldo = s.r - s.p; ac += s.saldo; s.ac = ac; });
+  const mx = Math.max(1, ...sem.map(s => Math.max(s.r, s.p))), cor = v => v >= 0 ? "var(--good)" : "var(--bad)", sinal = v => (v < 0 ? "− " : "") + brl(Math.abs(v));
+  const d7 = sem.flatMap(s => Object.values(s.dias)).filter(o => o.d < maisDias(hoje, 7)), r7 = d7.reduce((q, o) => q + o.r, 0), p7 = d7.reduce((q, o) => q + o.p, 0);
+  $("#cx-top").innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div class="label" style="margin:0">Saldo dos próximos 7 dias</div><span class="vsub" style="margin:0">${dm(hoje)} a ${dm(maisDias(hoje, 6))}</span></div>
+    <div class="hero" style="margin-top:8px;color:${cor(r7 - p7)}">${sinal(r7 - p7)}</div>
+    <div class="mstats"><div><span>A receber</span><b>${brl(r7)}</b><small>${d7.reduce((q, o) => q + o.rq, 0)} títulos</small></div>
+      <div><span>A pagar</span><b>${brl(p7)}</b><small>${d7.reduce((q, o) => q + o.pq, 0)} títulos</small></div>
+      <div><span>Saldo 8 semanas</span><b style="color:${cor(ac)};white-space:nowrap">${sinal(ac)}</b><small>títulos emitidos</small></div></div>`;
+  const vr = cx.vencido_receber || {}, vp = cx.vencido_pagar || {};
+  $("#cx-alerta").innerHTML = (vr.valor > 0 ? `<div class="cxal"><span>A receber vencido e não pago · ${vr.qtd} títulos</span><b>${brl(vr.valor)}</b></div>` : "") + (vp.valor > 0 ? `<div class="cxal"><span>A pagar vencido e em aberto · ${vp.qtd} títulos</span><b>${brl(vp.valor)}</b></div>` : "");
+  $("#cx-sem").innerHTML = sem.map(s => `<div class="cxrow" data-sem="${s.i}" role="button">
+    <div class="cxh"><div><b>Semana ${s.i + 1}</b> <span>${dm(s.ini)} a ${dm(s.fim)}${s.parcial ? " · parcial" : ""}</span></div><b style="color:${cor(s.saldo)}">${sinal(s.saldo)}</b></div>
+    <div class="cxbar"><span>Receber</span><div><i style="width:${(s.r / mx * 100).toFixed(1)}%;background:var(--s1)"></i></div><span>${brl(s.r)} <small>(${s.rq})</small></span></div>
+    <div class="cxbar"><span>Pagar</span><div><i style="width:${(s.p / mx * 100).toFixed(1)}%;background:var(--bad)"></i></div><span>${brl(s.p)} <small>(${s.pq})</small></span></div>
+    <div class="vsub" style="margin-top:6px">Saldo acumulado <b style="color:${cor(s.ac)}">${sinal(s.ac)}</b> <span class="chev" style="float:right">›</span></div></div>`).join("");
+  $("#cx-sem").onclick = e => { const el = e.target.closest(".cxrow"); if (el) abrirSemanaCx(+el.dataset.sem); };
+}
+function abrirSemanaCx(i) {
+  const s = CX_SEM[i]; if (!s) return; DET_BACK = null;
+  const dm = d => String(d.getDate()).padStart(2, "0") + "/" + String(d.getMonth() + 1).padStart(2, "0"), DS = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+  const sinal = v => (v < 0 ? "− " : "") + brl2(Math.abs(v));
+  $("#det-title").textContent = `Semana ${i + 1} · ${dm(s.ini)} a ${dm(s.fim)}`;
+  $("#det-sub").innerHTML = `Recebimentos e pagamentos por dia${s.parcial ? " · semana parcial" : ""}`;
+  const kv = (k, v) => `<div class="kv"><span>${k}</span><b>${v}</b></div>`;
+  $("#det-kv").innerHTML = kv("A receber", `${brl2(s.r)} · ${s.rq} títulos`) + kv("A pagar", `${brl2(s.p)} · ${s.pq} títulos`) + kv("Saldo da semana", `<span style="color:${s.saldo >= 0 ? "var(--good)" : "var(--bad)"}">${sinal(s.saldo)}</span>`) + kv("Saldo acumulado", `<span style="color:${s.ac >= 0 ? "var(--good)" : "var(--bad)"}">${sinal(s.ac)}</span>`);
+  $("#det-extra").innerHTML = "";
+  $("#det-itens").previousElementSibling.textContent = "Por dia";
+  const dias = Object.values(s.dias).sort((a, b) => a.d - b.d);
+  $("#det-itens").innerHTML = dias.length ? dias.map(o => `<tr><td><div class="cli">${dm(o.d)} · ${DS[o.d.getDay()]}</div><div class="mt">receber ${brl2(o.r)} (${o.rq}) · pagar ${brl2(o.p)} (${o.pq})</div></td><td class="v" style="color:${o.r - o.p >= 0 ? "var(--good)" : "var(--bad)"}">${sinal(o.r - o.p)}</td></tr>`).join("") : `<tr><td class="empty">Nenhum título nesta semana.</td></tr>`;
+  $("#det .sheet-b").scrollTop = 0; $("#det").showModal();
+}
 // Frete sobre vendas (contas a pagar do Winthor, por competência) e comparativo mensal
 function renderFrete() {
   const d = DATA || {}, f = d.faturamento || {}, fr = d.frete || {}, card = $("#card-frete"), wrap = $("#cmp-wrap");
@@ -1079,12 +1281,25 @@ window.addEventListener("resize", () => DATA && render(DATA));
 // Abas
 document.querySelectorAll("nav button").forEach(b => b.addEventListener("click", () => {
   document.querySelectorAll("nav button").forEach(x => x.setAttribute("aria-current", x === b ? "page" : "false"));
-  ["fat", "orc", "vend"].forEach(t => $("#tab-" + t).hidden = t !== b.dataset.tab);
+  ["fat", "orc", "cx", "rep", "vend"].forEach(t => $("#tab-" + t).hidden = t !== b.dataset.tab);
   store("vendas_tab", b.dataset.tab);
+  if (b.dataset.tab === "rep" && REP_PW && Date.now() - REP_T > 120000) { REP_T = Date.now(); repCarregar(REP_PW); }
   if (DATA) render(DATA); // redesenha gráficos da aba visível (largura)
 }));
 document.querySelector('nav button[data-tab="vend"]').lastChild.textContent = EMPCFG.Vends;
 if (EMPCFG.semOrc) document.querySelector('nav button[data-tab="orc"]').style.display = "none";   // filial sem orçamentos no Winthor
+$("#rp-seg").addEventListener("click", e => { const b = e.target.closest("button"); if (b) { RP_ABA = b.dataset.a; renderRep(); } });
+$("#rp-top").addEventListener("click", e => { if (e.target.closest("#rp-entrar")) { const pw = ($("#rp-pw") || {}).value || ""; if (pw) repCarregar(pw); } });
+$("#rp-top").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.id === "rp-pw" && e.target.value) repCarregar(e.target.value); });
+$("#rp-list").addEventListener("click", e => { const b = e.target.closest(".rp-ped"); if (b) abrirPedidoRep(b.dataset.g); });
+$("#det").addEventListener("input", e => { const P = REP_PED; if (!P || !e.target.classList.contains("rpp-cx")) return; const i = +e.target.dataset.i, it = P.itens[i], p = repProd(it.cod); it.cx = e.target.value;
+  const cx = Math.floor(+it.cx) || 0, n0 = x => Math.round(x || 0).toLocaleString("pt-BR"); $("#rpp-l" + i).textContent = `${n0(cx * p.un_cx)} un · ${brl2(cx * p.un_cx * (p.preco || 0))}`;
+  $("#rpp-total").textContent = brl2(P.itens.reduce((a, x) => { const q = repProd(x.cod); return a + (Math.floor(+x.cx) || 0) * q.un_cx * (q.preco || 0); }, 0)); });
+$("#det").addEventListener("change", e => { const P = REP_PED; if (!P || e.target.id !== "rpp-add" || !e.target.value) return; repLerForm(); P.itens.push({ cod: +e.target.value, cx: 1 }); P.msg = ""; desenharPedidoRep(); });
+$("#det").addEventListener("click", e => { if (!REP_PED) return; if (e.target.closest("#rpp-gerar")) repGerarPdf(); else if (e.target.closest("#rpp-zap")) repEnviarZap(); });
+$("#det").addEventListener("close", () => { REP_PED = null; $("#det-itens").previousElementSibling.textContent = "Itens"; });
+repIniciar();
+$("#rp-q").addEventListener("input", e => { RP_Q = e.target.value; renderRep(); });
 const lastTab = EMPCFG.semOrc && load("vendas_tab") === "orc" ? null : load("vendas_tab"); if (lastTab) document.querySelector(`nav button[data-tab="${lastTab}"]`)?.click();
 // Filtros
 $("#o-filtros").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; FILTRO = b.dataset.f; document.querySelectorAll("#o-filtros button").forEach(x => x.setAttribute("aria-pressed", x === b)); renderLista(); });
