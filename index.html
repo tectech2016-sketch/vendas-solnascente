@@ -1064,7 +1064,7 @@ function abrirOrc(num) {
     campo("Pedido gerado", r.pedido ? esc(r.pedido) : "—") + campo("NF gerada", r.nf ? esc(r.nf) : "—");
   const c = (DATA.clientes || {})[String(r.cliente_cod)];
   if (c) {
-    $("#det-kv").innerHTML += campo("CNPJ / CPF", c.cnpj ? fmtDoc(c.cnpj) : null) + campo("Bairro", c.bairro || null) + campo("Cidade", [c.cidade, c.uf].filter(Boolean).join(" / ") || null) + campo("Cliente desde", c.desde ? fmtDataAno(c.desde) + ` (${anosDesde(c.desde)})` : null)
+    $("#det-kv").innerHTML += campo("CNPJ / CPF", c.cnpj ? fmtDoc(c.cnpj) : null) + campo("Bairro", c.bairro || null) + campo("Cidade", [c.cidade, c.uf].filter(Boolean).join(" / ") || null) + campo("Praça", c.praca ? esc(c.praca) : null) + campo("Cliente desde", c.desde ? fmtDataAno(c.desde) + ` (${anosDesde(c.desde)})` : null)
       + campo("Compras 12 meses", c.qtd_12m ? `${c.qtd_12m} nota${c.qtd_12m > 1 ? "s" : ""} · ${brl(c.total_12m)}` : "nenhuma")
       + campo("Limite de crédito", c.limite != null ? brl(c.limite) : null)
       + (c.usado != null ? `<div class="kv fin" data-cod="${esc(r.cliente_cod)}" data-num="${esc(r.num)}" role="button" style="cursor:pointer"><span>Em aberto (usado) <span class="chev">›</span></span><b>${brl(c.usado)}${c.limite ? ` · ${fmtNum(Math.round(c.usado / c.limite * 100))}%` : ""}${c.vencido ? ` · <span class="luc-bad">vencido ${brl(c.vencido)}</span>` : ""}</b></div>` : "");
@@ -1121,7 +1121,7 @@ let FIN_BACK = null;
 function finRow(cod, nome) {
   const c = (DATA.clientes || {})[String(cod)]; if (!c || c.usado == null) return "";
   const campo = (k, v) => v == null || v === "" ? "" : `<div class="kv"><span>${k}</span><b>${v}</b></div>`;
-  return campo("Limite de crédito", c.limite != null ? brl(c.limite) : null)
+  return campo("Praça", c.praca ? esc(c.praca) : null) + campo("Limite de crédito", c.limite != null ? brl(c.limite) : null)
     + `<div class="kv fin" data-cod="${esc(cod)}" data-nome="${esc(nome || "")}" role="button" style="cursor:pointer"><span>Em aberto (usado) <span class="chev">›</span></span><b>${brl(c.usado)}${c.limite ? ` · ${fmtNum(Math.round(c.usado / c.limite * 100))}%` : ""}${c.vencido ? ` · <span class="luc-bad">vencido ${brl(c.vencido)}</span>` : ""}</b></div>`;
 }
 function abrirFin(cod, numOrca, nome) {
