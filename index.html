@@ -177,6 +177,9 @@ tr.tot td{font-weight:600;border-top:2px solid var(--axis)}
 .cxal{display:flex;justify-content:space-between;gap:10px;align-items:center;background:color-mix(in srgb,var(--bad) 8%,var(--surface));border:1px solid color-mix(in srgb,var(--bad) 25%,var(--border));border-radius:14px;padding:11px 14px;margin:10px 0 0;font-size:13px}.cxal b{color:var(--bad);white-space:nowrap}
 .cmp{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums} .cmp th{font-size:11px;font-weight:400;color:var(--muted);text-align:right;padding:8px 0 6px 10px} .cmp td{font-size:12.5px;text-align:right;padding:9px 0 9px 8px;vertical-align:top;border-top:1px solid var(--grid);white-space:nowrap} .cmp th:first-child,.cmp td:first-child{text-align:left;padding-left:0} .cmp td:first-child{font-weight:600} .cmp small{display:block;font-size:10.5px;color:var(--muted);font-weight:400}
 .imarg{font-size:12.5px;font-weight:600;color:var(--ink);margin-top:2px}.imarg.neg{color:var(--bad)}
+.m27t{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}.m27t th{font-size:11px;font-weight:400;color:var(--muted);text-align:right;padding:8px 0 6px 8px}.m27t th:first-child,.m27t td:first-child{text-align:left;padding-left:0}
+.m27t td{font-size:13px;text-align:right;padding:9px 0 9px 8px;border-top:1px solid var(--grid)}.m27t tr.cur td{font-weight:600}.m27t tr.fut td{color:var(--muted)}
+.m27bar{position:relative;height:8px;background:var(--grid);border-radius:4px;margin:8px 0 2px}.m27bar i{display:block;height:100%;border-radius:4px;min-width:2px}
 </style>
 </head>
 <body>
@@ -287,6 +290,14 @@ tr.tot td{font-weight:600;border-top:2px solid var(--axis)}
     <div class="card" id="v-rank" style="padding:4px 16px"></div>
     <div id="v-canais-wrap" hidden><h2>Canais <small>sem meta</small></h2><div class="card" id="v-canais" style="padding:4px 16px"></div></div>
   </section>
+  <section id="tab-meta" hidden>
+    <div class="card" id="m27-top" style="margin-top:4px"></div>
+    <h2>Meta por mês <small id="m27-mes-sub"></small></h2>
+    <div class="card" style="padding:6px 14px"><table class="m27t" id="m27-mes"></table></div>
+    <h2>Meta por vendedora <small id="m27-vend-sub"></small></h2>
+    <div class="card" id="m27-vend" style="padding:4px 16px"></div>
+    <p class="vsub" style="margin:10px 4px 0;line-height:1.5">Meta 2027: R$ 20,5 milhões, igual à média mensal de jan–out/2026 (R$ 1,71 milhão), dividida pelos dias úteis de cada mês, com dezembro 20% menor. Por vendedora, a média de jan–out/2026 de cada uma. Clientes: 300 atendidos por mês na soma das cinco. Meta de lucro entra a partir de abril.</p>
+  </section>
 </main>
 
 <nav>
@@ -295,6 +306,7 @@ tr.tot td{font-weight:600;border-top:2px solid var(--axis)}
   <button data-tab="cx" aria-current="false" style="display:none"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/></svg>Caixa</button>
   <button data-tab="rep" aria-current="false" style="display:none"><svg viewBox="0 0 24 24"><path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>Reposição</button>
   <button data-tab="vend" aria-current="false"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.5A5 5 0 0121.5 20"/></svg>Vendedoras</button>
+  <button data-tab="meta" aria-current="false" style="display:none"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg>Meta 27</button>
 </nav>
 
 <dialog id="det" class="sheet">
@@ -1311,7 +1323,7 @@ window.addEventListener("resize", () => DATA && render(DATA));
 // Abas
 document.querySelectorAll("nav button").forEach(b => b.addEventListener("click", () => {
   document.querySelectorAll("nav button").forEach(x => x.setAttribute("aria-current", x === b ? "page" : "false"));
-  ["fat", "orc", "cx", "rep", "vend"].forEach(t => $("#tab-" + t).hidden = t !== b.dataset.tab);
+  ["fat", "orc", "cx", "rep", "vend", "meta"].forEach(t => $("#tab-" + t).hidden = t !== b.dataset.tab);
   store("vendas_tab", b.dataset.tab);
   if (b.dataset.tab === "rep" && REP_PW && Date.now() - REP_T > 120000) { REP_T = Date.now(); repCarregar(REP_PW); }
   if (DATA) render(DATA); // redesenha gráficos da aba visível (largura)
@@ -1384,6 +1396,69 @@ function pedirSenha(msg) {
 }
 $("#settings").onclick = () => pedirSenha("Trocar a senha de acesso.");
 const _carregar = carregar;
+
+// ===== Meta 2027 (FiberFix) =====
+const META27 = { ano: 2027, total: 20500000, rot: "média de jan–out/26", cliMes: 300,
+  mes: [1594000, 1510000, 1846000, 1761000, 1678000, 1845000, 1761000, 1845000, 1761000, 1678000, 1678000, 1543000],
+  vend: [["yasmin", "Roberta (RCA 1 · Yasmin)", 0.3088, 82], ["ana", "Ana", 0.2782, 88], ["cleo", "Cleo", 0.1727, 57], ["glauciene", "Glauciene", 0.1071, 50], ["cintia", "Cintia", 0.092, 24], ["", "Canais online e outros", 0.0412, 0]] };
+function renderMeta27() {
+  const btn = document.querySelector('nav button[data-tab="meta"]'), on = EMPCFG.app === "vendas";
+  btn.style.display = on ? "" : "none"; if (!on || !DATA || !DATA.faturamento) return;
+  const M = META27, f = DATA.faturamento, ref = refData(), Y = ref.getFullYear(), mi = ref.getMonth();
+  const ym = (y, m) => y + "-" + String(m + 1).padStart(2, "0"), p0 = v => fmtNum(Math.round(v)) + "%";
+  const pm = {}; (f.por_mes || []).forEach(r => pm[r.mes] = r.valor);
+  if (f.mes != null) pm[ym(Y, mi)] = Math.max(pm[ym(Y, mi)] || 0, f.mes);
+  const HF = (DATA.hist_mensal && DATA.hist_mensal.fat) || [];
+  const chave = rca => { const k = String(rca || "").toLowerCase(); const v = M.vend.find(x => x[0] && k.includes(x[0])); return v ? v[0] : ""; };
+  const hv = {}; HF.forEach(x => { const k = chave(x.rca) + "|" + x.mes, o = hv[k] || (hv[k] = { v: 0, c: 0 }); o.v += x.valor || 0; o.c += x.clientes || 0; });
+  const curK = ym(Y, mi); const pvCur = {}; (f.por_vendedor || []).forEach(v => { const k = chave(v.nome); pvCur[k] = (pvCur[k] || 0) + (v.valor || 0); });
+  const realV = (k, key) => { const h = hv[k + "|" + key]; return key === curK ? Math.max(h ? h.v : 0, pvCur[k] || 0) : (h ? h.v : 0); };
+  const antes = Y < M.ano, depois = Y > M.ano, cor = ok => ok ? "var(--good)" : "var(--neg)";
+  const top = $("#m27-top"), tb = $("#m27-mes"), vd = $("#m27-vend");
+  if (antes) {
+    top.innerHTML = `<div class="label" style="margin:0">Meta de faturamento ${M.ano}</div>
+      <div class="vtop" style="margin-top:8px;align-items:baseline"><div class="hero">${brlK(M.total).replace(" mi", " milhões")}</div><span class="mpill ok">${M.rot}</span></div>
+      <div class="mstats"><div><span>Média por mês</span><b>${brl(M.total / 12)}</b><small>conforme dias úteis</small></div>
+        <div><span>Clientes por mês</span><b>${M.cliMes}</b><small>soma das vendedoras</small></div>
+        <div><span>Começa em</span><b>jan/${String(M.ano).slice(2)}</b><small>lucro a partir de abr</small></div></div>`;
+    $("#m27-mes-sub").textContent = `comparada com ${M.ano - 1}`;
+    tb.innerHTML = `<tr><th>Mês</th><th>Meta ${M.ano}</th><th>${M.ano - 1}</th><th>Dif.</th></tr>` + M.mes.map((m, i) => { const b = pm[ym(M.ano - 1, i)], parc = i === mi && Y === M.ano - 1, tem = b > 0 && i <= mi && !parc;
+      return `<tr><td>${MESES[i]}</td><td>${brl(m)}</td><td>${b > 0 && i <= mi ? brl(b) + (parc ? "*" : "") : "—"}</td><td>${tem ? fmtPct(pct(m, b)) : "—"}</td></tr>`; }).join("") +
+      `<tr class="tot"><td>Ano</td><td>${brl(M.total)}</td><td></td><td></td></tr>`;
+    $("#m27-vend-sub").textContent = `média mensal de ${M.ano}`;
+    const ult = []; for (let i = 1; i <= 12; i++) { const d = new Date(Y, mi - i, 1); ult.push(ym(d.getFullYear(), d.getMonth())); }
+    vd.innerHTML = M.vend.map(([k, nome, part, cli]) => { const ms = ult.filter(u => hv[k + "|" + u]), n = ms.length, mv = n ? ms.reduce((a, u) => a + hv[k + "|" + u].v, 0) / n : 0, mc = n ? ms.reduce((a, u) => a + hv[k + "|" + u].c, 0) / n : 0;
+      return `<div class="vrow"><div class="vtop"><span class="vnome">${nome}</span><b class="vval">${brl(M.total * part / 12)}</b></div>
+        <div class="vsub">${cli ? `Clientes por mês: <b style="color:var(--ink)">${cli}</b>` : "Sem meta de clientes"}${n ? ` · hoje faz ${brl(mv)}${cli ? ` e ${fmtNum(Math.round(mc))} clientes` : ""} (média de ${n} ${n > 1 ? "meses" : "mês"})` : ""}</div></div>`; }).join("");
+    return;
+  }
+  // ano da meta (ou depois): realizado x meta
+  const ult = depois ? 11 : mi, du = f.dias_uteis_mes > 0 ? (f.dias_uteis_decorridos || 0) / f.dias_uteis_mes : ref.getDate() / new Date(Y, mi + 1, 0).getDate();
+  const fr = i => depois || i < mi ? 1 : i === mi ? Math.min(1, du) : 0;
+  const real = i => pm[ym(M.ano, i)] || 0;
+  let rAc = 0, mAc = 0; for (let i = 0; i <= ult; i++) { rAc += real(i); mAc += M.mes[i] * fr(i); }
+  const dif = rAc - mAc, ok = dif >= 0, at = rAc / M.total * 100;
+  top.innerHTML = `<div class="vtop"><div class="label" style="margin:0">Meta ${M.ano} · acumulado até ${MESES[ult]}</div><span class="mpill ${ok ? "ok" : "late"}">${ok ? "Acima" : "Abaixo"} ${brl(Math.abs(dif))}</span></div>
+    <div class="vtop" style="margin-top:8px;align-items:baseline"><div class="hero">${brl(rAc)}</div><span class="vsub" style="margin:0">esperado até hoje <b style="color:var(--ink)">${brl(mAc)}</b></span></div>
+    <div class="m27bar"><i style="width:${Math.min(100, at)}%;background:${cor(ok)}"></i><span style="position:absolute;top:-4px;left:${Math.min(100, mAc / M.total * 100)}%;width:2px;height:16px;background:var(--ink)"></span></div>
+    <div class="mstats"><div><span>Meta do ano</span><b>R$ ${brlK(M.total)}</b><small>${M.rot}</small></div>
+      <div><span>Realizado</span><b>${p0(at)}</b><small>do ano</small></div>
+      <div><span>Faltam</span><b>R$ ${brlK(Math.max(0, M.total - rAc))}</b><small>${mAc > 0 ? p0(rAc / mAc * 100) + " do esperado" : ""}</small></div></div>`;
+  $("#m27-mes-sub").textContent = "realizado x meta";
+  tb.innerHTML = `<tr><th>Mês</th><th>Meta</th><th>Realizado</th><th>%</th></tr>` + M.mes.map((m, i) => { const fut = i > ult, r = real(i), a = r / m * 100, cur = !depois && i === mi;
+    return `<tr class="${fut ? "fut" : cur ? "cur" : ""}"><td>${MESES[i]}</td><td>${brl(m)}</td><td>${fut ? "—" : brl(r)}</td><td style="color:${fut ? "" : cor(r >= m * fr(i))}">${fut ? "—" : p0(a)}</td></tr>`; }).join("") +
+    `<tr class="tot"><td>Ano</td><td>${brl(M.total)}</td><td>${brl(rAc)}</td><td>${p0(at)}</td></tr>`;
+  $("#m27-vend-sub").textContent = `${MESES[ult]} e acumulado do ano`;
+  vd.innerHTML = M.vend.map(([k, nome, part, cli]) => {
+    const mm = M.mes[ult] * part, rm = realV(k, ym(M.ano, ult)), esp = mm * fr(ult), okm = rm >= esp;
+    let ra = 0, ma = 0; for (let i = 0; i <= ult; i++) { ra += realV(k, ym(M.ano, i)); ma += M.mes[i] * part * fr(i); }
+    const h = hv[k + "|" + ym(M.ano, ult)], cl = h ? h.c : null, espC = cli * fr(ult);
+    return `<div class="vrow"><div class="vtop"><span class="vnome">${nome}</span><span class="mpill ${okm ? "ok" : "late"}">${okm ? "No ritmo" : "Abaixo"}</span></div>
+      <div class="vtop" style="margin-top:4px"><b class="vval">${brl(rm)}</b><span class="vsub" style="margin:0"><b style="color:var(--ink)">${p0(rm / mm * 100)}</b> de ${brl(mm)}</span></div>
+      <div class="m27bar"><i style="width:${Math.min(100, rm / mm * 100)}%;background:${cor(okm)}"></i><span style="position:absolute;top:-4px;left:${Math.min(100, esp / mm * 100)}%;width:2px;height:16px;background:var(--ink)"></span></div>
+      <div class="vsub">${cli ? `Clientes no mês: <b style="color:${cl == null ? "var(--ink)" : cor(cl >= espC)}">${cl == null ? "—" : fmtNum(cl)}</b> de ${cli} · ` : ""}Ano: <b style="color:${cor(ra >= ma)}">${brl(ra)}</b> de ${brl(ma)} esperados</div></div>`; }).join("");
+}
+{ const _r0 = render; render = function (d) { _r0(d); try { renderMeta27(); } catch (e) { console.error("meta27", e); } }; }
 carregar = async function () { await _carregar(); if (DATA && DATA._exemplo) pedirSenha(); };
 const _render = render;
 render = function (d) { if (d && d.ok === false) { PW_ATUAL = null; store("vendas_pw", null); pedirSenha("Senha incorreta. Tente de novo."); return; } _render(d); };
