@@ -712,7 +712,10 @@ async function repCarregar(pw) {
 }
 function repIniciar() { if (!EMPCFG.reposicao) return; REP_T = Date.now(); REP_PW = load("rep_pw") || ""; try { REP = JSON.parse(load("rep_cache") || "null"); } catch (e) { REP = null; } if (REP_PW) repCarregar(REP_PW); }
 const repGrupo = p => p.grupo ?? p.codfornec, repProd = cod => (REP.produtos || []).find(p => p.cod == cod);
-const repChegou = (p, r) => !!(p && p.ultima_entrada && p.ultima_entrada > String(r.data).slice(0, 10));
+// última entrada do produto: a do cálculo do painel (1x por dia) ou a da leitura de vendas (a cada 5 min), a mais nova
+// produto com entrada depois do cálculo do painel: a sugestão dele está vencida e sai de "Repor agora" até o próximo cálculo
+const repEntNova = p => { const e = p && ((typeof DATA !== "undefined" && DATA && DATA.entradas) || {})[String(p.cod)]; return e && e > (p.ultima_entrada || "") ? e : ""; };
+const repChegou = (p, r) => { const e = p && (repEntNova(p) || p.ultima_entrada); return !!(e && e > String(r.data).slice(0, 10)); };
 // pedidos já gerados (últimos 30 dias) que ainda não chegaram, do mais novo para o mais antigo
 const repPedidos = g => (REP.pedidos_gerados || []).filter(r => ((REP.fornecedores || {})[String(r.codfornec)] || {}).grupo == g || r.codfornec == g).filter(r => !(r.itens || []).length || r.itens.some(it => !repChegou(repProd(it.cod), r))).sort((a, b) => a.data < b.data ? 1 : -1);
 function renderRep() {
@@ -741,7 +744,7 @@ function renderRep() {
   const dmB = v => fmtData(String(v).slice(0, 10));
   let h = "", nota = "";
   if (RP_ABA === "repor") {
-    const it = (R.produtos || []).filter(p => p.pedir_un > 0 && ok(p)), g = {}; it.forEach(p => (g[repGrupo(p)] = g[repGrupo(p)] || []).push(p));
+    const it = (R.produtos || []).filter(p => p.pedir_un > 0 && !repEntNova(p) && ok(p)), g = {}; it.forEach(p => (g[repGrupo(p)] = g[repGrupo(p)] || []).push(p));
     const soma = l => l.reduce((a, p) => a + p.pedir_valor, 0);
     h = Object.keys(g).sort((a, b) => soma(g[b]) - soma(g[a])).map(f => { const l = g[f].sort((a, b) => (a.cobertura_dias || 0) - (b.cobertura_dias || 0)), fo = F[String(f)] || {}, feitos = repPedidos(f), u = feitos[0];
       const marcaI = p => { for (const r of feitos) { if (repChegou(p, r)) continue; const x = (r.itens || []).find(y => y.cod == p.cod); if (x) return `<div class="mt" style="color:var(--good);font-weight:600">✓ pedido gerado ${dmB(r.data)}: ${n0(x.cx)} cx</div>`; } return ""; };
