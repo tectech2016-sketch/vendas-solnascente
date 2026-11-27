@@ -697,7 +697,7 @@ function abrirPed(num) {
   $("#det-sub").innerHTML = `Pedido #${esc(p.num)} · <span class="pill" style="background:${PA_COR[et]};color:#fff">${esc(nomeEt[et])}</span> · digitado há ${haQuanto(p.digitado)}`;
   const campo = (k, v) => v == null || v === "" ? "" : `<div class="kv"><span>${k}</span><b>${v}</b></div>`;
   $("#det-kv").innerHTML = campo(EMPCFG.Vend, esc(p.rca)) + campo("Valor", brl2(p.valor)) + campo("Plano de pagamento", esc(p.cond_pagto)) + campo("Orçamento", p.orcamento ? esc(p.orcamento) : "direto")
-    + campo("Carga", p.carga ? esc(p.carga) : null) + campo("Motivo", p.motivo ? `<span class="luc-bad">${esc(p.motivo)}</span>` : null) + finRow(p.cliente_cod, p.cliente);
+    + campo("Carga", p.carga ? esc(p.carga) : null) + campo("Transportadora", p.transportadora ? esc(p.transportadora) : null) + campo("Frete", p.frete > 0 ? brl2(p.frete) : null) + campo("Motivo", p.motivo ? `<span class="luc-bad">${esc(p.motivo)}</span>` : null) + finRow(p.cliente_cod, p.cliente);
   FIN_BACK = () => abrirPed(num);
   const auto = !p.liberado && p.pos !== "B" && p.pos !== "P";
   const passos = [["Digitado", p.digitado], [auto ? "Liberado direto (sem bloqueio)" : "Liberado na 336", p.liberado], ["Mapa de separação", p.mapa], ["Início separação", p.sep_ini], ["Fim separação", p.sep_fim], ["Conferência", p.conf_fim]];
