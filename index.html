@@ -774,23 +774,33 @@ function renderRep() {
     const corS = { "Abaixo do ponto de pedido": "var(--bad)", "Excesso": "#b26a00", "Dentro da faixa": "var(--good)" }, rot = { "Abaixo do ponto de pedido": "Repor", "Excesso": "Excesso", "Em falta há mais de 30 dias (avaliar)": "Em falta +30 dias", "Sem venda em 90 dias": "Sem venda 90 dias", "Dentro da faixa": "Na faixa" };
     const l = (R.produtos || []).filter(ok).sort((a, b) => (ordem[a.situacao] - ordem[b.situacao]) || (b.venda_30d - a.venda_30d));
     h = `<div class="card" style="padding:4px 16px"><div class="vsub" style="padding:10px 0 6px">${l.length} produtos</div>` + l.slice(0, 250).map(p => { const c = corS[p.situacao] || "var(--muted)";
-      return `<div class="rprow"><div><div class="cli">${esc(p.produto)}</div><div class="mt">${esc(nomeF(p))}</div><div class="mt">cód. ${p.cod} · vende ${dd(p.venda_dia)}/dia</div><span class="rptag" style="color:${c};background:color-mix(in srgb,${c} 12%,transparent)">${rot[p.situacao] || esc(p.situacao)}</span></div>
-        <div class="rv"><b>${n0(p.disponivel)}</b><small>ponto ${p.ponto_pedido == null ? "—" : n0(p.ponto_pedido)} · máx ${p.estoque_maximo == null ? "—" : n0(p.estoque_maximo)}</small><small>${p.cobertura_dias == null ? "sem giro" : n0(p.cobertura_dias) + " dias"}</small></div></div>`; }).join("") + `</div>`;
-    nota = "Ponto de pedido: abaixo dele, é hora de comprar. Máximo: quanto ter logo após receber. Stoq e Osara (entrega em D+1): pedir com 6 dias de cobertura, máximo de 8. Demais: pedir no intervalo de entrega (7 a 20 dias), máximo de intervalo + 10, até 30 dias.";
+      return `<div class="rprow"><div><div class="cli">${esc(p.produto)}</div><div class="mt">${esc(nomeF(p))}</div><div class="mt">cód. ${p.cod} · vende ${dd(p.venda_dia)}/dia</div>${repUltCompra(p, true) ? `<div class="mt">${esc(repUltCompra(p, true))}</div>` : ""}<span class="rptag" style="color:${c};background:color-mix(in srgb,${c} 12%,transparent)">${rot[p.situacao] || esc(p.situacao)}</span></div>
+        <div class="rv"><b>${n0(p.disponivel)}</b><small>ponto ${p.ponto_pedido == null ? "—" : n0(p.ponto_pedido)} · máx ${p.estoque_maximo == null ? "—" : n0(p.estoque_maximo)}</small><small>${p.cobertura_dias == null ? "sem giro" : n0(p.cobertura_dias) + " dias"}</small>${btPed(p)}</div></div>`; }).join("") + `</div>`;
+    nota = "O botão Pedir abre o pedido de compra do fornecedor com este produto, mesmo na faixa ou em excesso. Ponto de pedido: abaixo dele, é hora de comprar. Máximo: quanto ter logo após receber. Stoq e Osara (entrega em D+1): pedir com 6 dias de cobertura, máximo de 8. Demais: pedir no intervalo de entrega (7 a 20 dias), máximo de intervalo + 10, até 30 dias.";
   } else {
     const l = (R.excesso || []).filter(ok), tot = l.reduce((a, p) => a + p.excesso_valor, 0);
     h = `<div class="card" style="padding:4px 16px"><div class="rpf" style="padding:12px 0 8px"><span>${l.length} produtos com excesso</span><b>${brl(tot)}</b></div>` + l.map(p =>
-      `<div class="rprow"><div><div class="cli">${esc(p.produto)}</div><div class="mt">${esc(p.sugestao || "")}</div><div class="mt">cód. ${p.cod} · tem ${n0(p.disponivel)} · máx ${n0(p.estoque_maximo)}${p.desconto_max != null ? " · desconto até " + Math.round(p.desconto_max * 100) + "%" : ""}</div></div>
-        <div class="rv"><b>${brl(p.excesso_valor)}</b><small>${n0(p.excesso_un)} un</small><small>${p.meses_para_sair == null ? "sem venda" : dd(p.meses_para_sair) + " meses"}</small></div></div>`).join("") + `</div>`;
+      `<div class="rprow"><div><div class="cli">${esc(p.produto)}</div><div class="mt">${esc(p.sugestao || "")}</div><div class="mt">cód. ${p.cod} · tem ${n0(p.disponivel)} · máx ${n0(p.estoque_maximo)}${p.desconto_max != null ? " · desconto até " + Math.round(p.desconto_max * 100) + "%" : ""}</div>${repUltCompra(repProd(p.cod) || p, true) ? `<div class="mt">${esc(repUltCompra(repProd(p.cod) || p, true))}</div>` : ""}</div>
+        <div class="rv"><b>${brl(p.excesso_valor)}</b><small>${n0(p.excesso_un)} un</small><small>${p.meses_para_sair == null ? "sem venda" : dd(p.meses_para_sair) + " meses"}</small>${btPed(repProd(p.cod))}</div></div>`).join("") + `</div>`;
     nota = "Excesso é o que passa do estoque máximo, a custo. Meses para sair: no ritmo de venda dos últimos 30 dias. Desconto máximo sem prejuízo considera só o custo do produto, sem frete e comissão.";
   }
   $("#rp-list").innerHTML = h; $("#rp-nota").textContent = nota;
   document.querySelectorAll("#rp-seg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.a === RP_ABA));
 }
 // Pedido de compra: mesma lógica do painel do site (quantidade e prazo editáveis, incluir outros produtos do fornecedor, PDF gerado pelo painel)
-function abrirPedidoRep(g) {
+const btPed = p => p ? `<button class="btn rp-ped1" data-cod="${esc(p.cod)}" aria-label="Fazer pedido de compra de ${esc(p.produto)}" style="margin-top:6px;padding:6px 12px;font-size:13px;font-weight:600;color:var(--s1);border-color:var(--s1)">Pedir</button>` : "";
+// últimas compras do produto (até 3), vindas da leitura de vendas: [[data, quantidade em unidades, preço unitário], ...]
+function repCompras(p) { const c = p && ((typeof DATA !== "undefined" && DATA && DATA.compras) || {})[String(p.cod)]; return Array.isArray(c) ? c : []; }
+function repUltCompra(p, curto) { const c = repCompras(p), n0 = x => Math.round(x || 0).toLocaleString("pt-BR"), dm = d => String(d).slice(8, 10) + "/" + String(d).slice(5, 7);
+  if (!c.length) return p && p.ultima_entrada ? `Última compra em ${dm(p.ultima_entrada)}` : "";
+  const f = ([d, q, pu]) => `${dm(d)}: ${p.un_cx > 1 ? n0(q / p.un_cx) + " cx · " : ""}${n0(q)} un${pu ? " a " + brl2(pu) : ""}`;
+  return "Última compra " + f(c[0]) + (!curto && c.length > 1 ? " · antes: " + c.slice(1).map(f).join("; ") : ""); }
+function abrirPedidoRep(g, cod) {
   const F = (REP.fornecedores || {})[String(g)] || {}, sug = (REP.produtos || []).filter(p => repGrupo(p) == g && p.pedir_un > 0).sort((a, b) => (a.cobertura_dias || 0) - (b.cobertura_dias || 0));
-  REP_PED = { g, nome: titulo(F.nome || (sug[0] || {}).fornecedor || ""), itens: sug.map(p => ({ cod: p.cod, cx: p.pedir_cx })), prazo: F.prazo || "", entrega: "", quem: load("rep_quem") || "", obs: "", msg: "", erro: false, busy: false, arq: null, feito: null };
+  const itens = sug.map(p => ({ cod: p.cod, cx: p.pedir_cx })), px = cod != null ? repProd(cod) : null;
+  // pedido aberto a partir de um produto fora da lista de reposição (na faixa ou em excesso): entra com a quantidade da última compra, ou 1 caixa
+  if (px && !itens.some(i => i.cod == px.cod)) { const u = repCompras(px)[0]; itens.unshift({ cod: px.cod, cx: Math.max(1, Math.round((u ? u[1] : 0) / (px.un_cx || 1)) || 1) }); }
+  REP_PED = { g, nome: titulo(F.nome || (sug[0] || {}).fornecedor || (px || {}).fornecedor || ""), itens, prazo: F.prazo || "", entrega: "", quem: load("rep_quem") || "", obs: "", msg: "", erro: false, busy: false, arq: null, feito: null };
   DET_BACK = null; desenharPedidoRep(); $("#det").showModal();
 }
 // preço de compra por unidade: vale o digitado no pedido; em branco ou inválido, o da última entrada
@@ -819,7 +829,7 @@ function desenharPedidoRep() {
     <label class="vsub" style="display:block;margin-top:10px">Solicitante<input id="rpp-quem" maxlength="60" placeholder="Seu nome" value="${esc(P.quem)}" style="${inp}"></label>
     <label class="vsub" style="display:block;margin-top:10px">Observações (opcional)<input id="rpp-obs" maxlength="400" value="${esc(P.obs)}" style="${inp}"></label></div>`;
   $("#det-itens").previousElementSibling.textContent = "Itens · caixas e preço de compra por unidade";
-  $("#det-itens").innerHTML = linhas.map(({ it, p }, i) => `<tr><td><div class="cli">${esc(p.produto)}</div><div class="mt">cód. ${p.cod} · ${n0(p.un_cx)} un/cx · vende ${n0(p.venda_90d / 3)}/mês · tem ${n0(p.disponivel)}</div><div class="mt" id="rpp-l${i}">${n0((Math.floor(+it.cx) || 0) * p.un_cx)} un · ${brl2((Math.floor(+it.cx) || 0) * p.un_cx * repPreco(it, p))}</div></td>
+  $("#det-itens").innerHTML = linhas.map(({ it, p }, i) => `<tr><td><div class="cli">${esc(p.produto)}</div><div class="mt">cód. ${p.cod} · ${n0(p.un_cx)} un/cx · vende ${n0(p.venda_90d / 3)}/mês · tem ${n0(p.disponivel)}</div>${repUltCompra(p) ? `<div class="mt">${esc(repUltCompra(p))}</div>` : ""}<div class="mt" id="rpp-l${i}">${n0((Math.floor(+it.cx) || 0) * p.un_cx)} un · ${brl2((Math.floor(+it.cx) || 0) * p.un_cx * repPreco(it, p))}</div></td>
       <td class="v" style="white-space:nowrap;vertical-align:top"><div><input class="rpp-cx" data-i="${i}" type="number" inputmode="numeric" min="0" step="1" value="${it.cx}" style="${cel}"> cx</div>
         <div style="margin-top:6px"><span class="mt">R$</span> <input class="rpp-pr" data-i="${i}" type="text" inputmode="decimal" maxlength="12" aria-label="Preço de compra por unidade" placeholder="${repPrecoTxt(p.preco)}" value="${it.preco != null ? esc(it.preco) : repPrecoTxt(p.preco)}" style="${cel}${it.preco != null && repNum(it.preco) && repNum(it.preco) != p.preco ? ";border-color:var(--s1);font-weight:600" : ""}"> un</div>
         <div style="margin-top:8px"><button type="button" class="btn rpp-del" data-i="${i}" aria-label="Tirar ${esc(p.produto)} do pedido" style="padding:7px 12px;font-size:13px;color:var(--bad, #b3261e)">✕ Tirar do pedido</button></div></td></tr>`).join("")
@@ -1335,7 +1345,7 @@ if (EMPCFG.semOrc) document.querySelector('nav button[data-tab="orc"]').style.di
 $("#rp-seg").addEventListener("click", e => { const b = e.target.closest("button"); if (b) { RP_ABA = b.dataset.a; renderRep(); } });
 $("#rp-top").addEventListener("click", e => { if (e.target.closest("#rp-entrar")) { const pw = ($("#rp-pw") || {}).value || ""; if (pw) repCarregar(pw); } });
 $("#rp-top").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.id === "rp-pw" && e.target.value) repCarregar(e.target.value); });
-$("#rp-list").addEventListener("click", e => { const b = e.target.closest(".rp-ped"); if (b) abrirPedidoRep(b.dataset.g); });
+$("#rp-list").addEventListener("click", e => { const b = e.target.closest(".rp-ped"); if (b) return abrirPedidoRep(b.dataset.g); const u = e.target.closest(".rp-ped1"); if (u) { const p = repProd(u.dataset.cod); if (p) abrirPedidoRep(repGrupo(p), p.cod); } });
 $("#det").addEventListener("input", e => { const P = REP_PED, c = e.target.classList; if (!P || !(c.contains("rpp-cx") || c.contains("rpp-pr"))) return; const i = +e.target.dataset.i, it = P.itens[i], p = repProd(it.cod);
   if (c.contains("rpp-cx")) it.cx = e.target.value; else { it.preco = e.target.value; const alt = repNum(it.preco) && repNum(it.preco) != p.preco; e.target.style.borderColor = alt ? "var(--s1)" : ""; e.target.style.fontWeight = alt ? "600" : ""; }
   const cx = Math.floor(+it.cx) || 0, n0 = x => Math.round(x || 0).toLocaleString("pt-BR"); $("#rpp-l" + i).textContent = `${n0(cx * p.un_cx)} un · ${brl2(cx * p.un_cx * repPreco(it, p))}`;
