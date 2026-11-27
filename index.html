@@ -241,6 +241,7 @@ tr.tot td{font-weight:600;border-top:2px solid var(--axis)}
     <h2>Acumulado <small>vs. mês anterior</small></h2>
     <div class="card"><div class="chart" id="c-acum"></div>
       <div class="legend"><span style="--c:var(--s1)">Mês atual</span><span style="--c:var(--s2)">Mês anterior</span><span id="lg-meta" style="--c:var(--ink)" hidden>Meta</span></div></div>
+    <div id="fx-wrap" hidden><h2>Notas por faixa de valor <small id="fx-sub"></small></h2><div class="card" id="fx-card"></div></div>
   </section>
 
   <section id="tab-orc" hidden>
@@ -538,7 +539,7 @@ function render(d) {
   const nh = notasDoDia(hojeStr(isNaN(dt) ? hoje() : dt)); $("#k-hoje-sub").textContent = nh.length ? `${nh.length} nota${nh.length > 1 ? "s" : ""}` : (f.notas_mes ? "nenhuma nota ainda" : "");
   renderMeta(f);
   renderAndamento(d);
-  renderMargem(); renderFrete(); renderCaixa(); renderRep();
+  renderMargem(); renderFrete(); renderFaixas(); renderCaixa(); renderRep();
   renderAlerta(d);
   { const nl = notasDoDia(hojeStr(isNaN(dt) ? hoje() : dt)); const v = nl.reduce((a, n) => a + n.valor, 0), c = nl.reduce((a, n) => a + (n.custo || 0), 0);
     $("#k-lb").textContent = nl.length ? brl(v - c) : "—";
@@ -972,6 +973,32 @@ function renderFrete() {
       ${temFrete ? `<td>${pf == null ? "—" : p1(pf)}<small>${n0(fx)}</small></td><td>${mg == null || pf == null ? "—" : p1(mg - pf)}</td>` : ""}</tr>`; };
   $("#cmp-tab").innerHTML = `<table class="cmp"><tr><th>Mês</th><th>Faturado</th><th>Por nota</th><th>Margem</th>${temFrete ? "<th>Frete</th><th>Após<br>frete</th>" : ""}</tr>${meses.map(lin).join("")}</table>`;
 }
+// notas por faixa de valor (ticket): quantas notas e quanto do faturado em cada faixa, mês a mês
+let FX_MES = null;
+function renderFaixas() {
+  const wrap = $("#fx-wrap"), ft = (DATA || {}).faixas_ticket || {}, ms = (ft.meses || []).filter(m => (m.faixas || []).some(x => x.n > 0)).sort((a, b) => a.mes < b.mes ? 1 : -1).slice(0, 6);
+  wrap.hidden = !(EMPCFG.comparativo && ms.length);
+  if (wrap.hidden) return;
+  const lim = ft.limites || [300, 500, 1000, 2000], k = x => x >= 1000 ? (x / 1000).toLocaleString("pt-BR") + " mil" : String(x);
+  const nomes = lim.map((l, i) => i === 0 ? "Até R$ " + k(l) : "R$ " + k(lim[i - 1]) + " a " + k(l)).concat("Acima de R$ " + k(lim[lim.length - 1]));
+  if (!ms.some(m => m.mes === FX_MES)) FX_MES = ms[0].mes;
+  const i = ms.findIndex(m => m.mes === FX_MES), M = ms[i], P = ms[i + 1], rot = m => MESES[+m.slice(5) - 1] + "/" + m.slice(2, 4);
+  const tot = m => ({ n: m.faixas.reduce((a, x) => a + x.n, 0), v: m.faixas.reduce((a, x) => a + x.valor, 0) }), T = tot(M), TP = P ? tot(P) : null;
+  const p0 = x => Math.round(x) + "%", n0 = x => Math.round(x).toLocaleString("pt-BR"), ref = refData(), atual = M.mes === ref.getFullYear() + "-" + String(ref.getMonth() + 1).padStart(2, "0");
+  $("#fx-sub").textContent = "quantas notas e quanto do faturado em cada faixa";
+  const maxN = Math.max(...M.faixas.map(x => x.n), 1);
+  $("#fx-card").innerHTML = `<div class="seg" id="fx-meses" style="margin-bottom:12px;max-width:100%;overflow-x:auto">${ms.slice().reverse().map(m => `<button data-m="${m.mes}" aria-pressed="${m.mes === FX_MES}">${rot(m.mes)}</button>`).join("")}</div>
+    <div class="vsub" style="margin:0 0 10px">${rot(M.mes)}${atual ? " até dia " + ref.getDate() : ""} · <b style="color:var(--ink)">${n0(T.n)} notas</b> · ${brl(T.v)} · ticket médio ${brl(T.n ? T.v / T.n : 0)}</div>
+    ${M.faixas.map((x, j) => { const pn = T.n ? x.n / T.n * 100 : 0, pv = T.v ? x.valor / T.v * 100 : 0, pa = TP && TP.n ? P.faixas[j].n / TP.n * 100 : null, d = pa == null ? null : pn - pa;
+      return `<div style="padding:9px 0;border-top:1px solid var(--grid)"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><b style="font-size:14px">${nomes[j]}</b><span style="font-size:14px;font-variant-numeric:tabular-nums"><b>${n0(x.n)}</b> notas · <b>${p0(pn)}</b></span></div>
+        <div style="height:8px;background:var(--grid);border-radius:4px;margin:6px 0;overflow:hidden"><div style="height:100%;width:${Math.max(x.n / maxN * 100, x.n ? 2 : 0)}%;background:var(--s1);border-radius:4px"></div></div>
+        <div class="mt" style="display:flex;justify-content:space-between;gap:8px"><span>${brl(x.valor)} · ${p0(pv)} do faturado</span><span>${d == null ? "" : (Math.abs(d) < 0.5 ? "igual a " : (d > 0 ? "▲ " : "▼ ") + Math.abs(d).toLocaleString("pt-BR", { maximumFractionDigits: 0 }) + " pts vs. ") + rot(P.mes)}</span></div></div>`; }).join("")}
+    <div style="border-top:1px solid var(--grid);margin-top:2px;padding-top:10px"><div class="label" style="margin:0 0 6px">Evolução · % das notas em cada faixa</div>
+      <table class="cmp"><tr><th style="text-align:left">Faixa</th>${ms.slice(0, 4).reverse().map(m => `<th>${rot(m.mes)}</th>`).join("")}</tr>
+      ${nomes.map((nm, j) => `<tr><td style="text-align:left;font-weight:400">${nm}</td>${ms.slice(0, 4).reverse().map(m => { const t = tot(m); return `<td>${t.n ? p0(m.faixas[j].n / t.n * 100) : "—"}</td>`; }).join("")}</tr>`).join("")}
+      <tr><td style="text-align:left">Ticket médio</td>${ms.slice(0, 4).reverse().map(m => { const t = tot(m); return `<td><b>${t.n ? n0(t.v / t.n) : "—"}</b></td>`; }).join("")}</tr></table></div>`;
+}
+document.addEventListener("click", e => { const b = e.target.closest("#fx-meses button"); if (b) { FX_MES = b.dataset.m; renderFaixas(); } });
 function renderMargem() {
   const card = $("#card-margem"); const ns = (DATA && DATA.faturamento.notas_mes) || [];
   if (!ns.some(n => n.custo != null)) { card.hidden = true; return; }
